@@ -1,42 +1,56 @@
 #include "SC_PlugIn.h"
+#include <iostream>
+#include <jack/jack.h>
+#include <jack/midiport.h>
 
 static InterfaceTable *ft;
 
 
 struct JackMIDIIn: public Unit
 {
+  uint32 jack_frame;
+  void* port_buf;
+  jack_nframes_t next_event_time;
+  jack_midi_event_t next_event;
+  jack_nframes_t event_index;
+  jack_midi_event_t event;
+  jack_transport_state_t transport;
+  jack_position_t position;
+  jack_nframes_t max_event_index;
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
 static void JackMIDIIn_Ctor(JackMIDIIn* unit);
-
-#include <iostream>
-#include <jack/jack.h>
-#include <jack/midiport.h>
 
 jack_client_t*  client;
 jack_port_t*    inputPort;
 jack_port_t*    outputPort;
 
 int process(jack_nframes_t nframes, void *arg) {
+  //std::cout << "process" << std::endl;
   jack_midi_event_t in_event;
   jack_nframes_t event_index = 0;
   jack_position_t         position;
-  jack_transport_state_t  transport;
 
   void* port_buf = jack_port_get_buffer( inputPort, nframes);
-  transport = jack_transport_query( client, &position );
-  jack_nframes_t event_count = jack_midi_get_event_count(port_buf);
-  if(event_count > 0)
-  {
-    for(int i=0; i<event_count; i++)
-    {
-      jack_midi_event_get(&in_event, port_buf, i);
-      std::cout << "Frame " << position.frame << "  Event: " << i << " SubFrame#: " << in_event.time << " \tMessage:\t"
-                << (long)in_event.buffer[0] << "\t" << (long)in_event.buffer[1]
-                << "\t" << (long)in_event.buffer[2] << std::endl;
-    }
+  
+  
+  JackMIDIIn *unit = (JackMIDIIn*) arg;
+  
+  unit->port_buf = port_buf;
+  unit->jack_frame = 0;
+  unit->event_count = jack_midi_get_event_count(port_buf);
+  unit->transport = jack_transport_query( client, &position );
+
+  if (unit->event_count > 0) {
+    jack_midi_event_get(&in_event, port_buf, 0);
+    unit->event = event;
+    unit->event_index = 1;
+  } else {
+    unit->event_index = 0;
   }
+  unit->max_event_index = 0;
+
   return 0;
 }
 
@@ -53,7 +67,7 @@ PluginLoad(JackMIDIIn)
 void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
   inputPort  = jack_port_register (client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
-  jack_set_process_callback (client, process, 0);
+  jack_set_process_callback (client, process, unit);
   if (jack_activate(client) != 0)
   {
     std::cout<<  "JackMIDIIn: cannot activate jack client" << std::endl;
@@ -66,7 +80,24 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
 void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 {
   int numOutputs = unit->mNumOutputs;
-  
+  //std::cout << "next" << std::endl;
+
+  jack_nframes_t event_count = unit->event_count;
+  jack_nframes_t event_index = unit->event_index;
+  jack_nframes_t max_event_count = unit->max_event_count;
+  max_event_count += inNumSamples;
+
+  while (event_index < event_count && event_index < max_event_count) {
+    jack_midi_event_t event = unit->event;
+    std::cout << "Frame " << position.frame << "  Event: " << i << " SubFrame#: " << in_event.time << " \tMessage:\t"
+              << (long)in_event.buffer[0] << "\t" << (long)in_event.buffer[1]
+              << "\t" << (long)in_event.buffer[2] << std::endl;
+    unit->event=jack_midi_event_get(&in_event, unit->port_buf, i);
+    event_index++;
+  }
+
+  unit->event_index = event_index;
+
   for (int i = 0; i < inNumSamples; i++) {
     for (int j = 0; j < numOutputs; j++) {
       OUT(j)[i] = 0;
