@@ -28,9 +28,25 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 }
 
 
+
+#include <iostream>
+#include <jack/jack.h>
+#include <jack/midiport.h>
+
+jack_client_t*  client;
+jack_port_t*    inputPort;
+jack_port_t*    outputPort;
+
+int process(jack_nframes_t nframes, void *arg) {
+  return 0;
+}
+
 PluginLoad(JackMIDIIn)
 {
-    ft = inTable;
-    DefineSimpleUnit(JackMIDIIn);
+  ft = inTable;
+  DefineSimpleUnit(JackMIDIIn);
+
+  jack_set_process_callback (client, process, 0);
+
 }
 
