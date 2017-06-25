@@ -10,13 +10,15 @@ struct JackMIDIIn: public Unit
 {
   uint32 jack_frame;
   void* port_buf;
-  jack_nframes_t next_event_time;
-  jack_midi_event_t next_event;
-  jack_nframes_t event_index;
-  jack_midi_event_t event;
-  jack_transport_state_t transport;
-  jack_position_t position;
-  jack_nframes_t max_event_index;
+  jack_nframes_t              next_event_time;
+  jack_midi_event_t           next_event;
+  jack_nframes_t              max_event_count;
+  jack_nframes_t              event_count;
+  jack_nframes_t              event_index;
+  jack_midi_event_t           event;
+  jack_transport_state_t      transport;
+  jack_position_t             position;
+  jack_nframes_t              max_event_index;
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -44,7 +46,7 @@ int process(jack_nframes_t nframes, void *arg) {
 
   if (unit->event_count > 0) {
     jack_midi_event_get(&in_event, port_buf, 0);
-    unit->event = event;
+    unit->event = in_event;
     unit->event_index = 1;
   } else {
     unit->event_index = 0;
@@ -85,17 +87,20 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   jack_nframes_t event_count = unit->event_count;
   jack_nframes_t event_index = unit->event_index;
   jack_nframes_t max_event_count = unit->max_event_count;
+  jack_midi_event_t event = unit->event;
+  jack_position_t position = unit->position;
   max_event_count += inNumSamples;
 
   while (event_index < event_count && event_index < max_event_count) {
     jack_midi_event_t event = unit->event;
-    std::cout << "Frame " << position.frame << "  Event: " << i << " SubFrame#: " << in_event.time << " \tMessage:\t"
-              << (long)in_event.buffer[0] << "\t" << (long)in_event.buffer[1]
-              << "\t" << (long)in_event.buffer[2] << std::endl;
-    unit->event=jack_midi_event_get(&in_event, unit->port_buf, i);
+    std::cout << "Frame " << position.frame << "  Event: " << event_index << " SubFrame#: " << event.time << " \tMessage:\t"
+              << (long)event.buffer[0] << "\t" << (long)event.buffer[1]
+              << "\t" << (long)event.buffer[2] << std::endl;
     event_index++;
+    jack_midi_event_get(&event, unit->port_buf, event_index);
   }
 
+  unit->event=event;
   unit->event_index = event_index;
 
   for (int i = 0; i < inNumSamples; i++) {
