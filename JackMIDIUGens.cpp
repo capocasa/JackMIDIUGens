@@ -29,14 +29,12 @@ jack_port_t*    inputPort;
 jack_port_t*    outputPort;
 
 int process(jack_nframes_t nframes, void *arg) {
-  //std::cout << "process" << std::endl;
-  jack_midi_event_t in_event;
+  jack_midi_event_t event;
   jack_nframes_t event_index = 0;
   jack_position_t         position;
 
   void* port_buf = jack_port_get_buffer( inputPort, nframes);
-  
-  
+
   JackMIDIIn *unit = (JackMIDIIn*) arg;
   
   unit->port_buf = port_buf;
@@ -45,12 +43,12 @@ int process(jack_nframes_t nframes, void *arg) {
   unit->transport = jack_transport_query( client, &position );
 
   if (unit->event_count > 0) {
-    jack_midi_event_get(&in_event, port_buf, 0);
-    unit->event = in_event;
-    unit->event_index = 1;
-  } else {
+    jack_midi_event_get(&event, port_buf, 0);
+    unit->event = event;
     unit->event_index = 0;
+//for (int i = 0; i < unit->event_count; i++) { jack_midi_event_get(&event, port_buf, i); std::cout << "process " << event.time << std::endl;  }
   }
+  unit->event_index = 0;
   unit->max_event_index = 0;
 
   return 0;
@@ -92,11 +90,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   max_event_count += inNumSamples;
 
   while (event_index < event_count && event_index < max_event_count) {
-    jack_midi_event_t event = unit->event;
-    std::cout << "Frame " << position.frame << "  Event: " << event_index << " SubFrame#: " << event.time << " \tMessage:\t"
-              << (long)event.buffer[0] << "\t" << (long)event.buffer[1]
-              << "\t" << (long)event.buffer[2] << std::endl;
+    //std::cout << "Frame " << position.frame << "  Event: " << event_index << " SubFrame#: " << event.time << " \tMessage:\t"
+    //          << (long)event.buffer[0] << "\t" << (long)event.buffer[1]
+    //          << "\t" << (long)event.buffer[2] << std::endl;
     event_index++;
+
+    //std::cout << "next " << event.time << std::endl;
+
     jack_midi_event_get(&event, unit->port_buf, event_index);
   }
 
