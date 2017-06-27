@@ -69,19 +69,24 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
     std::cout << "JackMIDIIn: cannot connect to jack server" << std::endl;
   }
   jack_port_t* port = jack_port_register (client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
-  jack_set_process_callback (client, process, unit);
+  //jack_set_process_callback (client, process, unit);
   if (jack_activate(client) != 0)
   {
     std::cout<<  "JackMIDIIn: cannot activate jack client" << std::endl;
     return;
   }
+  
+  jack_midi_event_t event;
+  void* port_buf = jack_port_get_buffer( port, 2048);
+  jack_midi_event_get(&event, port_buf, 0);
 
   unit->client = client;
   unit->port = port;
   
   unit->event_i = 0;
   unit->time_n = 0;
-  unit->count = 0; 
+
+  unit->event = event;
   // ar ctor 48000   2.08333e-05   64   750    0.00133333    48000    64 
   // kr ctor   750   0.00133333     1   750    0.00133333    48000    64 
   //std::cout << "ctor " << SAMPLERATE << " " << SAMPLEDUR << " " << BUFLENGTH << " " << BUFRATE << " " << BUFDUR << " " << FULLRATE << " " << FULLBUFLENGTH << " " << std::endl;   
@@ -98,21 +103,25 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   jack_client_t* client = unit->client;
   jack_port_t* port = unit->port;
-  void* port_buf = jack_port_get_buffer( unit->port, 2048);
+  void* port_buf = jack_port_get_buffer( port, 2048);
 
   jack_nframes_t count = unit->count;
   jack_nframes_t event_i = unit->event_i;
-  jack_nframes_t time_n = unit->time_n;
   jack_midi_event_t event = unit->event;
+  jack_nframes_t time = event.time;
+  jack_nframes_t time_n = unit->time_n;
   jack_nframes_t time_0 = time_n;
   time_n += FULLBUFLENGTH;
 
-  jack_nframes_t time = event.time;
-
   if (event_i == 0) {
+    //std::cout << "recycle" << std::endl;
     count = jack_midi_get_event_count(port_buf);
-    jack_midi_event_get(&event, port_buf, 0);
-    time = event.time;
+    if (count > 0) {
+      jack_midi_event_get(&event, port_buf, 0);
+      time = event.time;
+    } else {
+      time = 0;
+    }
   }
   
   for (int i = 0; i < inNumSamples; i++) {
@@ -122,18 +131,16 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   while (event_i < count && time < time_n) {
     //std::cout << "nextt " << event_i << " " << time_n << " " << event.time << std::endl;
     
-    std::cout << "nex " << time << " " << time_0 << " " << (time - time_0) << std::endl;
+    std::cout << "nex " << time << " " << time_0 << " " << (time - time_0) << " " << time_n << " " << event_i << " " << count << std::endl;
 
     //OUT(0)[event_i - time_0] = event.buffer[0];
     //OUT(0)[time - time_0] = 0.5;
     
     event_i++;
-
     if (event_i >= count) {
-      //break;
+      jack_midi_event_get(&event, port_buf, event_i);
+      time = event.time;
     }
-    jack_midi_event_get(&event, port_buf, event_i);
-    time = event.time;
   }
 
 
