@@ -2,6 +2,7 @@
 #include <iostream>
 #include <jack/jack.h>
 #include <jack/midiport.h>
+#include <thread>
 
 static InterfaceTable *ft;
 
@@ -61,8 +62,7 @@ PluginLoad(JackMIDIIn)
   DefineSimpleUnit(JackMIDIIn);
 }
 
-void JackMIDIIn_Ctor(JackMIDIIn* unit)
-{
+void jack_init() {
   jack_client_t* client; 
   if ((client = jack_client_open("SuperCollider JackMIDI", JackNullOption, NULL)) == 0)
   {
@@ -75,6 +75,24 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
     std::cout<<  "JackMIDIIn: cannot activate jack client" << std::endl;
     return;
   }
+}
+
+static void con() __attribute__((constructor));
+void con() {
+  std::thread jack_init_thread(jack_init);
+  jack_init_thread.join();
+}
+
+
+void JackMIDIIn_Ctor(JackMIDIIn* unit)
+{
+
+  //unit->client = unit->mWorld->hw->mAudioDriver;
+  //uint32 mw = unit->mWorld->hw->mMaxWireBufs;
+  
+
+  /*
+  
   
   jack_midi_event_t event;
   void* port_buf = jack_port_get_buffer( port, 2048);
