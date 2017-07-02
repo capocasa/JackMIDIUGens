@@ -62,19 +62,28 @@ PluginLoad(JackMIDIIn)
   DefineSimpleUnit(JackMIDIIn);
 }
 
+jack_client_t* client = NULL; 
+jack_port_t* port = NULL;
+jack_nframes_t nframes = 0;
+
+int jack_buffer_size(jack_nframes_t nframes_new, void *arg) {
+  nframes = nframes_new;
+}
+
 void jack_init() {
-  jack_client_t* client; 
   if ((client = jack_client_open("SuperCollider JackMIDI", JackNullOption, NULL)) == 0)
   {
     std::cout << "JackMIDIIn: cannot connect to jack server" << std::endl;
   }
-  jack_port_t* port = jack_port_register (client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+  port = jack_port_register (client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
   //jack_set_process_callback (client, process, unit);
   if (jack_activate(client) != 0)
   {
     std::cout<<  "JackMIDIIn: cannot activate jack client" << std::endl;
     return;
   }
+  nframes = jack_get_buffer_size(client);
+  jack_set_buffer_size_callback(client, jack_buffer_size, 0);
 }
 
 static void con() __attribute__((constructor));
