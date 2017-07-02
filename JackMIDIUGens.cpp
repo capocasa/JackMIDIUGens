@@ -71,15 +71,16 @@ int jack_buffer_size(jack_nframes_t nframes_new, void *arg) {
 }
 
 void jack_init() {
-  if ((client = jack_client_open("SuperCollider JackMIDI", JackNullOption, NULL)) == 0)
+  if ((client = jack_client_open("SuperCollider JackMIDI", JackUseExactName, NULL)) == 0)
   {
-    std::cout << "JackMIDIIn: cannot connect to jack server" << std::endl;
+    //std::cout << "JackMIDIIn: cannot connect to jack server" << std::endl;
+    return;
   }
   port = jack_port_register (client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
   //jack_set_process_callback (client, process, unit);
   if (jack_activate(client) != 0)
   {
-    std::cout<<  "JackMIDIIn: cannot activate jack client" << std::endl;
+    //std::cout<<  "JackMIDIIn: cannot activate jack client" << std::endl;
     return;
   }
   nframes = jack_get_buffer_size(client);
