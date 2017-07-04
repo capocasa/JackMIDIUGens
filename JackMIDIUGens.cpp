@@ -23,6 +23,9 @@ struct JackMIDIIn: public Unit
   jack_position_t             position;
   jack_client_t*              client;
   jack_port_t*                port;
+  jack_nframes_t              i;
+  jack_nframes_t              n;
+  jack_nframes_t              offset;
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -107,7 +110,6 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
  
   unit->jack_frame_time = 0;
 
-
   /*
   void* port_buf = jack_port_get_buffer( port, 2048);
   jack_midi_event_get(&event, port_buf, 0);
@@ -134,27 +136,43 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   //std::cout << "next" << std::endl;
 
   jack_nframes_t jack_frame_time = jack_last_frame_time(client);
-  
+
+  void* port_buf;
+  jack_nframes_t offset;
+  jack_nframes_t i;
+  jack_nframes_t n;
+ 
   if (unit->jack_frame_time != jack_frame_time) {
-    void* port_buf = jack_port_get_buffer( port, nframes);
+    port_buf = jack_port_get_buffer( port, nframes);
   
-    std::cout << "new frame time " << jack_frame_time << std::endl;
-
-    for (int i = 0; i < inNumSamples; i++) {
-      OUT(0)[i] = 0;
-    }
-    
+    //std::cout << "new frame time " << jack_frame_time << std::endl;
+ 
     jack_midi_event_t event;
-    jack_nframes_t n = jack_midi_get_event_count(port_buf);
+    i = 0;
+    n = jack_midi_get_event_count(port_buf);
+    offset = 0;
 
-    for (int i = 0; i < n; i++) {
-      std::cout << "event " << i << " " << n << " " << event.time << std::endl;
+    for (i = 0; i < n; i++) {
+      jack_midi_event_get(&event, port_buf, i);
+      std::cout << "event " << i << " " << n << " " << event.time << " " << offset << std::endl;
     }
-  
-    unit->jack_frame_time = jack_frame_time;
+ 
+  } else {
+    port_buf = unit->port_buf;
+    i = unit->i;
+    n = unit->n;
+    offset = unit->offset;
   }
 
-  std::cout << "cycle" << std::endl;
+  //std::cout << "cycle" << std::endl;
+ 
+  offset += FULLBUFLENGTH;
+  
+  unit->jack_frame_time = jack_frame_time;
+  unit->offset = offset;
+  unit->i = i;
+  unit->n = n;
+  unit->port_buf = port_buf;
 
 
   /*
