@@ -26,7 +26,7 @@ int jack_buffer_size(jack_nframes_t nframes, void *arg) {
 }
 
 void jack_init() {
-  if ((jack_client = jack_client_open("SuperCollider JackMIDI", JackUseExactName, NULL)) == 0)
+  if ((jack_client = jack_client_open("JackMIDIUGens", JackUseExactName, NULL)) == 0)
   {
     //std::cout << "JackMIDIIn: cannot connect to jack server" << std::endl;
     return;
