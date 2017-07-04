@@ -31,7 +31,7 @@ void jack_init() {
     //std::cout << "JackMIDIIn: cannot connect to jack server" << std::endl;
     return;
   }
-  jack_midi_port_in = jack_port_register (jack_client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+  jack_midi_port_in = jack_port_register (jack_client, "midi_in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
   //jack_set_process_callback (client, process, unit);
   if (jack_activate(jack_client) != 0)
   {
