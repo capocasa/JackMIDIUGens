@@ -56,12 +56,6 @@ for (int i = 0; i < unit->count; i++) { jack_midi_event_get(&event, port_buf, i)
   return 0;
 }
 
-PluginLoad(JackMIDIIn)
-{
-  ft = inTable;
-  DefineSimpleUnit(JackMIDIIn);
-}
-
 jack_client_t* client = NULL; 
 jack_port_t* port = NULL;
 jack_nframes_t nframes = 0;
@@ -87,11 +81,21 @@ void jack_init() {
   jack_set_buffer_size_callback(client, jack_buffer_size, 0);
 }
 
-static void con() __attribute__((constructor));
-void con() {
-  std::thread jack_init_thread(jack_init);
-  jack_init_thread.join();
+PluginLoad(JackMIDIIn)
+{
+  ft = inTable;
+  DefineSimpleUnit(JackMIDIIn);
+  
+//  std::thread jack_init_thread(jack_init);
+//  jack_init_thread.join();
+  jack_init();
 }
+
+//static void con() __attribute__((constructor));
+//void con() {
+//  std::thread jack_init_thread(jack_init);
+//  jack_init_thread.join();
+//}
 
 
 void JackMIDIIn_Ctor(JackMIDIIn* unit)
