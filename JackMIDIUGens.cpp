@@ -151,11 +151,6 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     i = 0;
     n = jack_midi_get_event_count(port_buf);
     offset = 0;
-
-    for (i = 0; i < n; i++) {
-      jack_midi_event_get(&event, port_buf, i);
-      std::cout << "event " << i << " " << n << " " << event.time << " " << offset << std::endl;
-    }
  
   } else {
     port_buf = unit->port_buf;
@@ -165,6 +160,22 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   }
 
   //std::cout << "cycle" << std::endl;
+  
+  jack_midi_event_t event;
+  jack_nframes_t time; 
+  while (i < n) {
+    jack_midi_event_get(&event, port_buf, i);
+    
+    time = event.time - offset;
+
+    if (time >= FULLBUFLENGTH) {
+      break;
+    }
+    
+    std::cout << "event " << i << " " << n << " " << event.time << " " << offset << " " << time << " " << jack_frame_time << " " << FULLBUFLENGTH << std::endl;
+  
+    i++;
+  }
  
   offset += FULLBUFLENGTH;
   
