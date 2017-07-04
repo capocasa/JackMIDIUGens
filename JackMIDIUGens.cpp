@@ -172,8 +172,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
     }
     
-    std::cout << "event " << i << " " << n << " " << event.time << " " << offset << " " << time << " " << jack_frame_time << " " << FULLBUFLENGTH << std::endl;
+    //std::cout << "event " << i << " " << n << " " << event.time << " " << offset << " " << time << " " << jack_frame_time << " " << FULLBUFLENGTH << std::endl;
   
+    OUT(0)[time] = (float)event.buffer[0];
+
     i++;
   }
  
