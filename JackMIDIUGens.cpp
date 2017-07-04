@@ -8,8 +8,7 @@ static InterfaceTable *ft;
 
 struct JackMIDIIn: public Unit
 {
-  uint32 jack_frame;
-  void* port_buf;
+  void*                       jack_midi_port_in_buffer;
   jack_nframes_t              jack_frame_time;
   jack_nframes_t              i;
   jack_nframes_t              n;
@@ -18,29 +17,29 @@ struct JackMIDIIn: public Unit
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
 static void JackMIDIIn_Ctor(JackMIDIIn* unit);
-jack_client_t* client = NULL; 
-jack_port_t* port = NULL;
-jack_nframes_t nframes = 0;
+jack_client_t* jack_client = NULL; 
+jack_port_t* jack_midi_port_in = NULL;
+jack_nframes_t jack_nframes = 0;
 
-int jack_buffer_size(jack_nframes_t nframes_new, void *arg) {
-  nframes = nframes_new;
+int jack_buffer_size(jack_nframes_t nframes, void *arg) {
+  jack_nframes = nframes;
 }
 
 void jack_init() {
-  if ((client = jack_client_open("SuperCollider JackMIDI", JackUseExactName, NULL)) == 0)
+  if ((jack_client = jack_client_open("SuperCollider JackMIDI", JackUseExactName, NULL)) == 0)
   {
     //std::cout << "JackMIDIIn: cannot connect to jack server" << std::endl;
     return;
   }
-  port = jack_port_register (client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
+  jack_midi_port_in = jack_port_register (jack_client, "in", JACK_DEFAULT_MIDI_TYPE, JackPortIsInput, 0);
   //jack_set_process_callback (client, process, unit);
-  if (jack_activate(client) != 0)
+  if (jack_activate(jack_client) != 0)
   {
     //std::cout<<  "JackMIDIIn: cannot activate jack client" << std::endl;
     return;
   }
-  nframes = jack_get_buffer_size(client);
-  jack_set_buffer_size_callback(client, jack_buffer_size, 0);
+  jack_nframes = jack_get_buffer_size(jack_client);
+  jack_set_buffer_size_callback(jack_client, jack_buffer_size, 0);
 }
 
 PluginLoad(JackMIDIIn)
@@ -63,25 +62,25 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   int numOutputs = unit->mNumOutputs;
   //std::cout << "next" << std::endl;
 
-  jack_nframes_t jack_frame_time = jack_last_frame_time(client);
+  jack_nframes_t jack_frame_time = jack_last_frame_time(jack_client);
 
-  void* port_buf;
+  void* jack_midi_port_in_buffer;
   jack_nframes_t offset;
   jack_nframes_t i;
   jack_nframes_t n;
  
   if (unit->jack_frame_time != jack_frame_time) {
-    port_buf = jack_port_get_buffer( port, nframes);
+    jack_midi_port_in_buffer = jack_port_get_buffer(jack_midi_port_in, jack_nframes);
   
     //std::cout << "new frame time " << jack_frame_time << std::endl;
  
     jack_midi_event_t event;
     i = 0;
-    n = jack_midi_get_event_count(port_buf);
+    n = jack_midi_get_event_count(jack_midi_port_in_buffer);
     offset = 0;
  
   } else {
-    port_buf = unit->port_buf;
+    jack_midi_port_in_buffer = unit->jack_midi_port_in_buffer;
     i = unit->i;
     n = unit->n;
     offset = unit->offset;
@@ -92,7 +91,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   jack_midi_event_t event;
   jack_nframes_t time; 
   while (i < n) {
-    jack_midi_event_get(&event, port_buf, i);
+    jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
     
     time = event.time - offset;
 
@@ -113,7 +112,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   unit->offset = offset;
   unit->i = i;
   unit->n = n;
-  unit->port_buf = port_buf;
+  unit->jack_midi_port_in_buffer = jack_midi_port_in_buffer;
 
 }
 
