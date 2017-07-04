@@ -11,6 +11,7 @@ struct JackMIDIIn: public Unit
 {
   uint32 jack_frame;
   void* port_buf;
+  jack_nframes_t              jack_frame_time;
   jack_nframes_t              nframes;
   jack_nframes_t              next_event_time;
   jack_midi_event_t           next_event;
@@ -103,7 +104,9 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
 
   //unit->client = unit->mWorld->hw->mAudioDriver;
   //uint32 mw = unit->mWorld->hw->mMaxWireBufs;
-  
+ 
+  unit->jack_frame_time = 0;
+
 
   /*
   
@@ -123,23 +126,46 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
   // kr ctor   750   0.00133333     1   750    0.00133333    48000    64 
   //std::cout << "ctor " << SAMPLERATE << " " << SAMPLEDUR << " " << BUFLENGTH << " " << BUFRATE << " " << BUFDUR << " " << FULLRATE << " " << FULLBUFLENGTH << " " << std::endl;   
   
+  */
   
-  SETCALC(JackMIDIIn_next);
-  JackMIDIIn_next(unit, 1);
+  SETCALC(JackMIDIIn_next); 
+  
+  //JackMIDIIn_next(unit, 1);
 }
+
 
 void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 {
   int numOutputs = unit->mNumOutputs;
   //std::cout << "next" << std::endl;
 
-  jack_client_t* client = unit->client;
-  jack_port_t* port = unit->port;
-  void* port_buf = jack_port_get_buffer( port, 2048);
+  jack_nframes_t jack_frame_time = jack_last_frame_time(client);
+  
+  if (unit->jack_frame_time != jack_frame_time) {
+    void* port_buf = jack_port_get_buffer( port, nframes);
+  
+    std::cout << "new frame time " << jack_frame_time << std::endl;
 
+    for (int i = 0; i < inNumSamples; i++) {
+      OUT(0)[i] = 0;
+    }
+    
+    jack_midi_event_t event;
+    jack_nframes_t n = jack_midi_get_event_count(port_buf);
+
+    for (int i = 0; i < n; i++) {
+      std::cout << "event " << i << " " << n << " " << event.time << std::endl;
+    }
+  
+    unit->jack_frame_time = jack_frame_time;
+  }
+
+  std::cout << "cycle" << std::endl;
+
+
+  /*
   jack_nframes_t count = unit->count;
   jack_nframes_t event_i = unit->event_i;
-  jack_midi_event_t event = unit->event;
   jack_nframes_t time = event.time;
   jack_nframes_t time_n = unit->time_n;
   jack_nframes_t time_0 = time_n;
@@ -147,18 +173,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   if (event_i == 0) {
     //std::cout << "recycle" << std::endl;
-    count = jack_midi_get_event_count(port_buf);
     if (count > 0) {
-      jack_midi_event_get(&event, port_buf, 0);
       time = event.time;
     } else {
       time = 0;
     }
   }
   
-  for (int i = 0; i < inNumSamples; i++) {
-    OUT(0)[i] = 0;
-  }
 
   while (event_i < count && time < time_n) {
     //std::cout << "nextt " << event_i << " " << time_n << " " << event.time << std::endl;
@@ -181,7 +202,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     event_i = 0;
   }
 
-/*
+
   while (event_i < count && event_i < time_n) {
     //std::cout << "Frame " << position.frame << "  Event: " << event_i << " SubFrame#: " << event.time << " \tMessage:\t"
     //          << (long)event.buffer[0] << "\t" << (long)event.buffer[1]
@@ -195,9 +216,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   unit->event_i = event_i;
 */
 
-  unit->event_i = event_i;
-  unit->time_n = time_n;
-  unit->count = count;
-  unit->event = event;
+//  unit->event_i = event_i;
+//  unit->time_n = time_n;
+//  unit->count = count;
+//  unit->event = event;
+
 }
 
