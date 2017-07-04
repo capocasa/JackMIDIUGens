@@ -109,14 +109,8 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
 
 
   /*
-  
-  
-  jack_midi_event_t event;
   void* port_buf = jack_port_get_buffer( port, 2048);
   jack_midi_event_get(&event, port_buf, 0);
-
-  unit->client = client;
-  unit->port = port;
   
   unit->event_i = 0;
   unit->time_n = 0;
