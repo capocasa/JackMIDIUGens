@@ -13,7 +13,7 @@ struct JackMIDIIn: public Unit
   jack_nframes_t              i;
   jack_nframes_t              n;
   jack_nframes_t              offset;
-  float                       ob;
+  float                       ob[2];
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -54,7 +54,7 @@ PluginLoad(JackMIDIIn)
 void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
   unit->jack_frame_time = 0;
-  unit->ob = 0.0;
+  //unit->ob = {};
   SETCALC(JackMIDIIn_next); 
 }
 
@@ -73,6 +73,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   if (unit->jack_frame_time != jack_frame_time) {
     jack_midi_port_in_buffer = jack_port_get_buffer(jack_midi_port_in, jack_nframes);
+    
+    //std::cout << "numOutputs " << numOutputs << std::endl;
   
     //std::cout << "new frame time " << jack_frame_time << std::endl;
  
@@ -95,7 +97,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   
   jack_nframes_t last_time = 0;
     
-  float ob = unit->ob;
+  float* ob = unit->ob;
 
   while (i < n) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
@@ -115,15 +117,18 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     //std::cout << type << std::endl;
 
     for (jack_nframes_t j = last_time; j < time; j++) {
-      OUT(0)[j] = ob;
+      OUT(0)[j] = ob[0];
+      OUT(1)[j] = ob[1];
     }
 
     switch(type) {
     case 144:    //noteon
-      ob = (float)note;
+      ob[0] = (float)note;
+      ob[1] = (float)value;
       break;
     case 128:    //noteoff
-      ob = 0.0;
+      ob[0] = 0.0;
+      ob[1] = 0.0;
       break;
     }
     
@@ -133,7 +138,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   }
 
   for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
-    OUT(0)[j] = ob;
+    OUT(0)[j] = ob[0];
+    OUT(1)[j] = ob[1];
   }
 
   offset += FULLBUFLENGTH;
