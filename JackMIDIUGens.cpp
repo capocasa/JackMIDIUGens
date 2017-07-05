@@ -13,6 +13,7 @@ struct JackMIDIIn: public Unit
   jack_nframes_t              i;
   jack_nframes_t              n;
   jack_nframes_t              offset;
+  float                       ob;
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -53,6 +54,7 @@ PluginLoad(JackMIDIIn)
 void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
   unit->jack_frame_time = 0;
+  unit->ob = 0.0;
   SETCALC(JackMIDIIn_next); 
 }
 
@@ -62,13 +64,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   int numOutputs = unit->mNumOutputs;
   //std::cout << "next" << std::endl;
 
-  jack_nframes_t jack_frame_time = jack_last_frame_time(jack_client);
+  jack_nframes_t     jack_frame_time = jack_last_frame_time(jack_client);
 
-  void* jack_midi_port_in_buffer;
-  jack_nframes_t offset;
-  jack_nframes_t i;
-  jack_nframes_t n;
- 
+  void*              jack_midi_port_in_buffer;
+  jack_nframes_t     offset;
+  jack_nframes_t     i;
+  jack_nframes_t     n;
+
   if (unit->jack_frame_time != jack_frame_time) {
     jack_midi_port_in_buffer = jack_port_get_buffer(jack_midi_port_in, jack_nframes);
   
@@ -90,10 +92,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   
   jack_midi_event_t event;
   jack_nframes_t time;
-
-  for (int j = 0; j < FULLBUFLENGTH; j++) {
-    OUT(0)[j] = 0.0;
-  }
+  
+  jack_nframes_t last_time = 0;
+    
+  float ob = unit->ob;
 
   while (i < n) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
@@ -105,12 +107,26 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     }
     
     //std::cout << "event " << i << " " << n << " " << event.time << " " << offset << " " << time << " " << jack_frame_time << " " << FULLBUFLENGTH << std::endl;
-  
-    OUT(0)[time] = (float)event.buffer[1];
 
+    uint32 type = event.buffer[0];
+    uint32 note = event.buffer[1];
+    uint32 value = event.buffer[2];
+   
+    for (jack_nframes_t j = last_time; j < time; j++) {
+      OUT(0)[j] = ob;
+    }
+
+    ob = (float)note;
+    
     i++;
+  
+    last_time = time;
   }
- 
+
+  for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
+    OUT(0)[j] = ob;
+  }
+
   offset += FULLBUFLENGTH;
   
   unit->jack_frame_time = jack_frame_time;
