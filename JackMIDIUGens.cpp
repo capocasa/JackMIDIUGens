@@ -112,11 +112,20 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     uint32 note = event.buffer[1];
     uint32 value = event.buffer[2];
    
+    //std::cout << type << std::endl;
+
     for (jack_nframes_t j = last_time; j < time; j++) {
       OUT(0)[j] = ob;
     }
 
-    ob = (float)note;
+    switch(type) {
+    case 144:    //noteon
+      ob = (float)note;
+      break;
+    case 128:    //noteoff
+      ob = 0.0;
+      break;
+    }
     
     i++;
   
