@@ -17,6 +17,7 @@ struct JackMIDIIn: public Unit
   uint32                      controllers[256];
   uint32                      ob[256];
   uint32                      polyphony;
+  bool                        polytouch;
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -59,14 +60,16 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
   //std::cout << "ctor\n";
   unit->jack_frame_time = 0;
   unit->polyphony = IN0(0);
-  std::cout << "polyphony " << unit->polyphony << "\n";
+  unit->polytouch = IN0(1);
+  //std::cout << "polyphony " << unit->polyphony << "\n";
+  std::cout << "polytouch " << unit->polytouch << "\n";
   for (uint32 i = 0; i < 256; i++) {
     unit->ob[i] = 0;
   }
-  uint32 n = IN0(1);
+  uint32 n = IN0(2);
   //std::cout << "n " <<  n << " ";
   for (uint32 i = 0; i < n; i++) {
-    unit->controllers[i] = IN0(2+i);
+    unit->controllers[i] = IN0(3+i);
     //std::cout << "c" << i << " " << unit->controllers[i] << " ";
   }
   //std::cout << "\n";
@@ -119,7 +122,11 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32 num_controllers = unit->num_controllers;
   uint32* controllers = unit->controllers;
 
-  uint32* obc = ob + (2 * polyphony);
+  uint32 polytouch = unit->polytouch;
+  uint32 width = 2 + polytouch;
+  uint32 fullwidth = width * polyphony;
+
+  uint32* obc = ob + fullwidth;
 
   while (i < n) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
@@ -151,7 +158,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     case 144:
 
       // find empty output 
-      for (oo = 0; oo < (2*polyphony); oo += 2) {
+      for (oo = 0; oo < fullwidth; oo += width) {
         if (ob[oo] == 0) {
           break;
         }
@@ -168,7 +175,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     case 128:
       
       // find playing note
-      for (oo = 0; oo < (2*polyphony); oo += 2) {
+      for (oo = 0; oo < fullwidth; oo += width) {
         if (ob[oo] == note) {
           break;
         }
@@ -210,7 +217,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     // polytouch
     case 160:
       
-      std::cout << "polytouch " << note << " " << value << std::endl;
+      //std::cout << "polytouch " << note << " " << value << std::endl;
 
       break;
     
