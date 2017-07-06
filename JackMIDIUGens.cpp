@@ -136,6 +136,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32* chan = unit->chan;
   uint32 num_chan = unit->num_chan;
 
+  bool audiorate = inNumSamples > 1;
+
   while (i < n) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
     
@@ -170,10 +172,14 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       }
     }
 
-    for (jack_nframes_t j = last_time; j < time; j++) {
-      for (int k = 0; k < numOutputs; k++) {
-        OUT(k)[j] = (float)ob[k];
+    if (audiorate) {
+      for (jack_nframes_t j = last_time; j < time; j++) {
+        for (int k = 0; k < numOutputs; k++) {
+          OUT(k)[j] = (float)ob[k];
+        }
       }
+    } else {
+      // no intermittent output for control rate
     }
 
     uint32 oo;
@@ -284,9 +290,15 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     last_time = time;
   }
 
-  for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
+  if (audiorate) {
+    for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
+      for (int k = 0; k < numOutputs; k++) {
+        OUT(k)[j] = (float)ob[k];
+      }
+    }
+  } else {
     for (int k = 0; k < numOutputs; k++) {
-      OUT(k)[j] = (float)ob[k];
+      OUT0(k) = (float)ob[k];
     }
   }
 
