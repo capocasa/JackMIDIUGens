@@ -13,7 +13,7 @@ struct JackMIDIIn: public Unit
   jack_nframes_t              i;
   jack_nframes_t              n;
   jack_nframes_t              offset;
-  float                       ob[2];
+  uint32                      ob[256];
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -54,7 +54,9 @@ PluginLoad(JackMIDIIn)
 void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
   unit->jack_frame_time = 0;
-  //unit->ob = {};
+  for (int i = 0; i < 256; i++) {
+    unit->ob[i] = 0;
+  }
   SETCALC(JackMIDIIn_next); 
 }
 
@@ -97,7 +99,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   
   jack_nframes_t last_time = 0;
     
-  float* ob = unit->ob;
+  uint32* ob = unit->ob;
 
   while (i < n) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
@@ -117,18 +119,44 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     //std::cout << type << std::endl;
 
     for (jack_nframes_t j = last_time; j < time; j++) {
-      OUT(0)[j] = ob[0];
-      OUT(1)[j] = ob[1];
+      for (int k = 0; k < numOutputs; k++) {
+        OUT(k)[j] = (float)ob[k];
+      }
     }
-
+    
+    uint32 oo;
     switch(type) {
-    case 144:    //noteon
-      ob[0] = (float)note;
-      ob[1] = (float)value;
+    // noteon 
+    case 144:
+
+      // find empty output 
+      for (oo = 0; oo < numOutputs; oo += 2) {
+        if (ob[oo] == 0) {
+          break;
+        }
+      }
+      if (oo < numOutputs) {
+        ob[oo] = note;
+        ob[oo+1] = value;
+      } else {
+        // potentially warn
+      }
       break;
-    case 128:    //noteoff
-      ob[0] = 0.0;
-      ob[1] = 0.0;
+    // noteff 
+    case 128:
+      
+      // find playing note
+      for (oo = 0; oo < numOutputs; oo += 2) {
+        if (ob[oo] == note) {
+          break;
+        }
+      }
+      if (oo < numOutputs) {
+        ob[oo] = 0;
+        ob[oo+1] = 0;
+      }  else {
+        // potentially warn
+      }
       break;
     }
     
@@ -138,8 +166,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   }
 
   for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
-    OUT(0)[j] = ob[0];
-    OUT(1)[j] = ob[1];
+    for (int k = 0; k < numOutputs; k++) {
+      OUT(k)[j] = (float)ob[k];
+    }
   }
 
   offset += FULLBUFLENGTH;

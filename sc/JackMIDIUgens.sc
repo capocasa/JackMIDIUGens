@@ -1,14 +1,21 @@
 JackMIDIIn : MultiOutUGen {
+  
+  var
+    polyphony
+  ;
+  
   *ar {
-    ^this.multiNew('audio', 2);
+    arg polyphony = 5;
+    ^this.multiNew('audio', polyphony).reshape(polyphony, 2);
   }
   *kr {
     ^this.multiNew('control');
   }
 
-  init { arg argNumChannels ... theInputs;
+  init { arg argPolyphony ... theInputs;
+    polyphony = argPolyphony;
     inputs = theInputs;
-    ^this.initOutputs(argNumChannels, rate);
+    ^this.initOutputs(2*polyphony, rate);
   }
   argNamesInputsOffset { ^2 }
 
