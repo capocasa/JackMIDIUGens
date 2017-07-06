@@ -137,25 +137,28 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
     }
     
-    //std::cout << "event " << i << " " << n << " " << event.time << " " << offset << " " << time << " " << jack_frame_time << " " << FULLBUFLENGTH << std::endl;
-
-    uint32 type = event.buffer[0];
+    //std::cout << "event i " << i << " n " << n << " time " << event.time << " offset " << offset << " buffer " << (int)event.buffer[0] << " " << (int)event.buffer[1] << " " << (int)event.buffer[2] << " jack_frame_time " << jack_frame_time << " FULLBUFLENGTH " << FULLBUFLENGTH << std::endl;
+    
+    uint32 typechan = event.buffer[0];
     uint32 note = event.buffer[1];
     uint32 value = event.buffer[2];
-   
-    //std::cout << type << std::endl;
+
+    uint32 type = (int) typechan / 16;
+    uint32 channel = typechan % 16;
+
+    //std::cout << "type " << type << "channel " << channel << "\n";
 
     for (jack_nframes_t j = last_time; j < time; j++) {
       for (int k = 0; k < numOutputs; k++) {
         OUT(k)[j] = (float)ob[k];
       }
     }
-    
+
     uint32 oo;
     switch(type) {
     
     // noteon 
-    case 144:
+    case 9:
 
       // find empty output 
       for (oo = 0; oo < fullwidth; oo += width) {
@@ -172,7 +175,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
     
     // noteff 
-    case 128:
+    case 8:
       
       // find playing note
       for (oo = 0; oo < fullwidth; oo += width) {
@@ -192,7 +195,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
     
     // pitch bend
-    case 224:
+    case 14:
       
       //std::cout << "bend " << note << " " << value << std::endl;
       
@@ -205,7 +208,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
 
     // controller
-    case 176:
+    case 11:
      
       //std::cout << "controller " << note << " " << value << std::endl;
 
@@ -218,7 +221,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
     
     // polytouch
-    case 160:
+    case 10:
       
       //std::cout << "polytouch " << note << " " << value << std::endl;
       if (polytouch) {
@@ -238,7 +241,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
     
     // touch
-    case 208:
+    case 13:
       
       //std::cout << "touch " << note << " " << value << std::endl;
       
