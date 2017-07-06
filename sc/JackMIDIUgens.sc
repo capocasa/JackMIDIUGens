@@ -14,10 +14,10 @@ JackMIDIIn : MultiOutUGen {
   init { arg polyphony, controls, polytouch;
     controls = controls.value.collect { |control|
       switch (control,
-        \bend,        224,
-        //\cc,          176,
-        \touch,       208,
-        \polytouch,   160,
+        \bend,        14,
+        //\cc,          11,
+        \touch,       13,
+        \polytouch,   10,
         control
       );
     };

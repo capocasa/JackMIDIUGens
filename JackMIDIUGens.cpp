@@ -200,7 +200,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       //std::cout << "bend " << note << " " << value << std::endl;
       
       for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == 224) {
+        if (controllers[j] == 14) {
           obc[j] = (float)(note + 128*value);
         }
       }
@@ -246,7 +246,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       //std::cout << "touch " << note << " " << value << std::endl;
       
       for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == 208) {
+        if (controllers[j] == 13) {
           obc[j] = (float)note;
         }
       }
