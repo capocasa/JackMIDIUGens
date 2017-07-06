@@ -136,6 +136,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32* chan = unit->chan;
   uint32 num_chan = unit->num_chan;
 
+  // I think James McCartney's spirit will haunt me for this one,
+  // but I just can't get myself to use nasty macros to avoid a
+  // single extra comparison per control period
+
   bool audiorate = inNumSamples > 1;
 
   while (i < n) {
