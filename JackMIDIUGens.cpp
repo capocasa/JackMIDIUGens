@@ -62,7 +62,7 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
   unit->polyphony = IN0(0);
   unit->polytouch = IN0(1);
   //std::cout << "polyphony " << unit->polyphony << "\n";
-  std::cout << "polytouch " << unit->polytouch << "\n";
+  //std::cout << "polytouch " << unit->polytouch << "\n";
   for (uint32 i = 0; i < 256; i++) {
     unit->ob[i] = 0;
   }
@@ -183,6 +183,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       if (oo < numOutputs) {
         ob[oo] = 0;
         ob[oo+1] = 0;
+        if (polytouch) {
+          ob[oo+2] = 0;
+        }
       }  else {
         // potentially warn
       }
@@ -218,6 +221,19 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     case 160:
       
       //std::cout << "polytouch " << note << " " << value << std::endl;
+      if (polytouch) {
+        // find playing note
+        for (oo = 0; oo < fullwidth; oo += width) {
+          if (ob[oo] == note) {
+            break;
+          }
+        }
+        if (oo < numOutputs) {
+          ob[oo+2] = value;
+        }  else {
+          // potentially warn
+        }
+      }
 
       break;
     
