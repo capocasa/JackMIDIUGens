@@ -184,7 +184,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     // pitch bend
     case 224:
       
-      std::cout << "bend " << note << " " << value << std::endl;
+      //std::cout << "bend " << note << " " << value << std::endl;
+      
+      for (int j = 0; j < num_controllers; j++) {
+        if (controllers[j] == 224) {
+          obc[j] = (float)(note + 128*value);
+        }
+      }
       
       break;
 
