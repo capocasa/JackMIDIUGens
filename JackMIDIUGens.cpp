@@ -133,6 +133,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   uint32* obc = ob + fullwidth;
 
+  uint32* chan = unit->chan;
+  uint32 num_chan = unit->num_chan;
+
   while (i < n) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
     
@@ -152,6 +155,20 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     uint32 channel = typechan % 16;
 
     //std::cout << "type " << type << "channel " << channel << "\n";
+
+    int ch;
+    if (num_chan) {
+      for (ch = 0; ch < num_chan; ch++) {
+        if (chan[ch] == channel) {
+          break;
+        }
+      }
+      if (ch == num_chan) {
+        // ugen not configured for this channel, skip event
+        i++;
+        continue;
+      }
+    }
 
     for (jack_nframes_t j = last_time; j < time; j++) {
       for (int k = 0; k < numOutputs; k++) {
