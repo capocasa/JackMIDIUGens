@@ -217,7 +217,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     // touch
     case 208:
       
-      std::cout << "touch " << note << " " << value << std::endl;
+      //std::cout << "touch " << note << " " << value << std::endl;
+      
+      for (int j = 0; j < num_controllers; j++) {
+        if (controllers[j] == 208) {
+          obc[j] = (float)note;
+        }
+      }
 
       break;
     
