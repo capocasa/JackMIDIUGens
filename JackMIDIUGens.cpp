@@ -18,6 +18,8 @@ struct JackMIDIIn: public Unit
   uint32                      ob[256];
   uint32                      polyphony;
   bool                        polytouch;
+  uint32                      num_chan;
+  uint32                      chan[16];
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -57,23 +59,26 @@ PluginLoad(JackMIDIIn)
 
 void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
-  //std::cout << "ctor\n";
   unit->jack_frame_time = 0;
   unit->polyphony = IN0(0);
-  unit->polytouch = IN0(1);
-  //std::cout << "polyphony " << unit->polyphony << "\n";
-  //std::cout << "polytouch " << unit->polytouch << "\n";
+  uint32 num_chan = IN0(1);
+  unit->num_chan = num_chan;
+  uint32 num_controllers = IN0(2);
+  unit->num_controllers = num_controllers;
+  unit->polytouch = IN0(3);
   for (uint32 i = 0; i < 256; i++) {
     unit->ob[i] = 0;
   }
-  uint32 n = IN0(2);
-  //std::cout << "n " <<  n << " ";
-  for (uint32 i = 0; i < n; i++) {
-    unit->controllers[i] = IN0(3+i);
-    //std::cout << "c" << i << " " << unit->controllers[i] << " ";
+  for (uint32 i = 0; i < num_chan; i++) {
+    unit->chan[i] = IN0(4+i);
+    std::cout << unit->chan[i] << " ";
   }
-  //std::cout << "\n";
-  unit->num_controllers = n;
+  std::cout << "\n";
+  for (uint32 i = 0; i < num_controllers; i++) {
+    unit->controllers[i] = IN0(4+num_chan+i);
+    std::cout << unit->controllers[i] << " ";
+  }
+  std::cout << "\n";
   SETCALC(JackMIDIIn_next); 
 }
 

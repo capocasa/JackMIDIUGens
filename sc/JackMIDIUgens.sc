@@ -1,17 +1,17 @@
 JackMIDIIn : MultiOutUGen {
 
   *ar {
-    arg polyphony = 5, controls = [], polytouch = true;
+    arg polyphony = 5, channels, controls, polytouch = true;
     var out;
     polytouch = polytouch.asInt;
-    out = this.multiNew('audio', polyphony, controls, polytouch);
+    out = this.multiNew('audio', polyphony, channels, controls, polytouch);
     ^(out[..(polyphony*2-1)].reshape(polyphony, 2+polytouch) ++ [out[(2+polytouch*polyphony)..]]);
   }
   *kr {
     ^this.multiNew('control');
   }
 
-  init { arg polyphony, controls, polytouch;
+  init { arg polyphony, channels, controls, polytouch;
     controls = controls.value.collect { |control|
       switch (control,
         \bend,        14,
@@ -21,7 +21,8 @@ JackMIDIIn : MultiOutUGen {
         control
       );
     };
-    inputs = [polyphony, polytouch, controls.size] ++ controls;
+    channels = channels.value;
+    inputs = [polyphony, channels.size,controls.size, polytouch] ++ channels ++ controls;
     ^this.initOutputs(2+polytouch*polyphony+controls.size, rate);
   }
 
