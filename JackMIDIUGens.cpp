@@ -71,14 +71,14 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
   }
   for (uint32 i = 0; i < num_chan; i++) {
     unit->chan[i] = IN0(4+i);
-    std::cout << unit->chan[i] << " ";
+    //std::cout << unit->chan[i] << " ";
   }
-  std::cout << "\n";
+  //std::cout << "\n";
   for (uint32 i = 0; i < num_controllers; i++) {
     unit->controllers[i] = IN0(4+num_chan+i);
-    std::cout << unit->controllers[i] << " ";
+    //std::cout << unit->controllers[i] << " ";
   }
-  std::cout << "\n";
+  //std::cout << "\n";
   SETCALC(JackMIDIIn_next); 
 }
 
