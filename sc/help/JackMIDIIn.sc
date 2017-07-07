@@ -16,7 +16,9 @@ argument::polyphony
 The maximum number of simultaneous notes.
 
 argument::chan
-The MIDI channel or channels to respond to. Use an integer to provide a single channel, an array to provide several channels, or nil to respond to all channels.
+The MIDI channel or channels to respond to. Use an integer to respond to a single channel, an array reference to respond to several channels, or nil to respond to all channels.
+
+An unreferenced array may be used to have every set of outputs respond to one MIDI channel each, with the channel controllers attached to the note array instead of being provided seperately.
 
 ::
 
@@ -46,6 +48,17 @@ Those are a lot of arrays, but they are fairly easy to use thanks to the SuperCo
 If the polyphony is 0, only the controllers are output as a single array.
 
 code::[control1,control2]
+
+If the polyphony is 1, the note and controller outputs are given as a single array.
+
+code::[note,velociy,polytouch,control1,control2]
+
+This allows for using multichannel expansion to support channel-per-note (MPE MIDI) devices.
+
+code::[[note,velociy,polytouch,control1,control2],[[note,velociy,polytouch,control1,control2],[[note,velociy,polytouch,control1,control2]]
+
+
+The array formats vary quite a bit depending on the parameters, which allows using the most useful format for each use case, but also means that code may need to be adapted when making parameter changes.
 
 examples::
 
@@ -85,13 +98,33 @@ examples::
   }.play;
 )
 
-// use two control interface faders to sweep and q a filter without notes
+// use two control interface faders to sweep and shape a filter without playing any notes
 (
   {
     var cc1, cc11;
     #cc1, cc11 = JackMIDIIn.ar(0,nil,`[1,11]);
     RLPF.ar(Saw.ar(55),(cc1/128).lag*4500,(cc11/128).lag);
   }.play
+)
+
+// Use a channel-per-note device on channels 1, 2 and 3 with polytouch, pitch bend and cc1
+(
+  {
+    // Note the channel array [0,1,2] is not referenced `[0,1,2]
+    JackMIDIIn.ar(1,[0,1,2],`[\bend,1], true).collect ;
+  }.play;
+)
+
+// Use a channel-per-note device on channels 1, 2 and 3 with polytouch, pitch bend and cc1
+(
+  {
+    // Note the channels array is not `referenced but the controls array is
+    JackMIDIIn.ar(1,[0,1,2],`[\bend,1], true).collect { |c|
+      var note,velocity,polytouch,bend,cc1;
+      #note,velocity,polytouch,bend,cc1 = c;
+      Pulse.ar(note.midicps*(bend/8192).lag, (cc1/128).lag, (velocity/128).lag * (polytouch / 128).lag);
+    }.sum;
+  }.play;
 )
 
 
@@ -101,7 +134,7 @@ Processing MIDI data on the server side is a more natural fit, because by nature
 
 By eliminating the need to program responders or keep track of parameters, it also provides a much more convenient interface for synth programming, helping with the overall goal of letting users focus on their creativity.
 
-On linux, a hardware interfacing program is required. It is highly recommended to use jamrouter for the best possible results.
+On linux, a hardware interfacing program (a "bridge") is required. It is highly recommended to use jamrouter for the best possible results.
 
 code:: jamrouter -M generic -D /dev/midi1 -o JackMIDIUGens:midi_in
 
