@@ -15,8 +15,11 @@ JackMIDIIn : MultiOutUGen {
     polytouch = polytouch.asInt;
     out = this.multiNew(rate, polyphony, channels, controls, polytouch);
     note = out[..(2+polytouch*polyphony-1)].reshape(polyphony, 2+polytouch);
+    channel_controls = out[(2+polytouch*polyphony)..];
     if (controls.value.size>0) {
-       channel_controls = out[(2+polytouch*polyphony)..];
+      if (polyphony == 0) {
+        ^channel_controls;
+      };
       ^[note, channel_controls];
     };
     ^note;
