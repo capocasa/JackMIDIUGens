@@ -33,7 +33,7 @@ JackMIDIIn : MultiOutUGen {
         control
       );
     };
-    channels = channels.value;
+    channels = channels.value.asArray;
     inputs = [polyphony, channels.size,controls.size, polytouch] ++ channels ++ controls;
     ^this.initOutputs(2+polytouch*polyphony+controls.size, rate);
   }
