@@ -44,35 +44,42 @@ With a polyphony of 3, enabled polytouch and cc1 and bend controls specified, th
 code::[[[note,velocity,polytouch],[note,velocity,polytouch],[note,velocity,polytouch]],[cc1,velocity]]
 
 
-Examples::
+examples::
 
 // Simple sine
 (
-  JackMIDIIn.ar.collect {|c|
-    var note,vel;
-    #note,vel=c;
-    SinOsc.ar(note.midicps,0,(vel/128).lag);
-  }.sum;
+  {
+    JackMIDIIn.ar.collect {|c|
+      var note,vel;
+      #note,vel=c;
+      SinOsc.ar(note.midicps,0,(vel/128).lag);
+    }.sum;
+  }.play;
 )
 
 // Polytouch pulse
 (
-  JackMIDIIn.ar(polytouch:true).collect {|c|
-    var note,vel,touch;
-    #note,vel,touch=c;
-    Pulse.ar(note.midicps,(touch/128).lag,(vel/128).lag);
-  }.sum;
+  {
+    JackMIDIIn.ar(polytouch:true).collect {|c|
+      var note,vel,touch;
+      #note,vel,touch=c;
+      Pulse.ar(note.midicps,(touch/128).lag,(vel/128).lag);
+    }.sum;
+  }.play;
 )
 
 // Channel 1, with pitch bend and a control interface fader mapped to channel 1
 (
-  var notes,controls;
-  #notes,controls = JackMIDIIn.ar(5,1,[\bend,\cc1]).collect {|c|
-    var note,vel,bend,touch;
-    #note,vel=c;
-    #bend,touch=controls;
-    Pulse.ar(note.midicps*(bend/16384)+0.5),(touch/128).lag,(vel/128).lag);
-  }.sum;
+  {
+    var notes,controls,bend,cc1;
+    #notes,controls = JackMIDIIn.ar(5,nil,`[\bend,1], false);
+    #bend,cc1=controls;
+    notes.collect {|c|
+      var note,vel;
+      #note,vel=c;
+      Pan2.ar(SinOsc.ar(note.midicps*(bend/8192).lag,0,(vel/128).lag),(cc1/64-1).lag);
+    }.sum;
+  }.play;
 )
 
 discussion::
