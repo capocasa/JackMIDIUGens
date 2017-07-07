@@ -82,18 +82,15 @@ examples::
   }.play;
 )
 
+
 discussion::
 
-JackMIDIUGens implement MIDI connectivity on the server side, because a different set of trade-offs was desired than was previously possible.
+Processing MIDI data on the server side is a more natural fit, because by nature MIDI is a realtime data stream like any other. While sacrificing the ability to create synths on the fly, it eliminates all sources of timing inaccuracy except the hardware interface itself. This brings SuperCollider MIDI accuracy on par with most DAWs available, and probably surpasses them.
 
-Client side MIDI is more flexible and can start and stop synths, and works well enough in practice, but offers no realtime guarantees, which can be a problem for more percussive instruments- and nonpercussive instruments as well, when one considers that the hardware interface, system MIDI, OSC sending and receiving as well as scclient code itself each can introduce unpredictable amouns of jitter and latency. With server side MIDI, using Jack as an interface, MIDI timing can theoretically be the same as the audio rate.
+By eliminating the need to program responders or keep track of parameters, it also provides a much more convenient interface for synth programming, helping with the overall goal of letting users focus on their creativity.
 
-With client side MIDI, a new synth is commonly generated from a synthdef for each noteOn message, saving resources when the synth is not playing. With client side MIDI, synths are kept running even when they are not played. This trades some loss of efficiency but introduces reliability. When playing a complex piece, the CPU cycles are sure to be sufficient no matter how much input is produced in the heat of the moment, because they are already being used.
+On linux, a hardware interfacing program is required. It is highly recommended to use jamrouter for the best possible results.
 
-An existing drawback is complexity of the signal paths, which is handled fairly well by SuperCollider's excellent looping.
-
-It is recommended, when on Linux, to use Jack MIDI combined with jamrouter, which handles MIDI timing processing.
-
-code:: jamrouter -M generic -D /dev/midi1
+code:: jamrouter -M generic -D /dev/midi1 -o JackMIDIUGens:midi_in
 
 
