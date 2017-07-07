@@ -25,11 +25,12 @@ JackMIDIIn : MultiOutUGen {
 
   init { arg polyphony, channels, controls, polytouch;
     controls = controls.value.collect { |control|
+      // arbitrarily encode controller names as midi type + 1000 to avoid collisions
       switch (control,
-        \bend,        14,
-        //\cc,          11,
-        \touch,       13,
-        \polytouch,   10,
+        \bend,        1014,
+        //\cc,        1011,
+        \touch,       1013,
+        //\polytouch,   1010,
         control
       );
     };
