@@ -13,7 +13,7 @@ method:: ar
 
 argument::polyphony
 
-The maximum number of simultaneous notes. Each note gets its own output, to be connected to its own UGens.
+The maximum number of simultaneous notes.
 
 argument::chan
 The MIDI channel or channels to respond to. Use an integer to provide a single channel, an array to provide several channels, or nil to respond to all channels.
@@ -21,7 +21,7 @@ The MIDI channel or channels to respond to. Use an integer to provide a single c
 ::
 
 argument::controls
-An array of channel control values to output, in addition to notes.
+An array of channel control values to be output, in addition to notes.
 
 \bend
 \touch
@@ -29,20 +29,23 @@ integer values (mapped to the corresponding cc value)
 
 argument::polytouch
 
-Whether to output polytouch values for each note.
+Whether to output polytouch values for each note. Default true.
 
 returns:
 
-An array with two items, the first for the notes, velocities and (optionally) polytouch, the second for the per-channel control values.
+An array of multichannel outputs of the size polyphony. The first output is the note value, the second is the velocity, and an optional third is the polytouch value. They are output as long as the note is held and can be used as gates. The first unused output is used for the next note.
 
-With no polytouch or channel controls and the default polyphony of 5, the output is:
+code::[[note,velocity],[note,velocity],[note,velocity],[note,velocity],[note,velocity]]
 
-code::[[[note,velocity],[note,velocity],[note,velocity],[note,velocity],[note,velocity]],[]]
+If controls are defined, the note array is added to an additional array as the first item. The second item is an array of the control outputs.
 
-With a polyphony of 3, enabled polytouch and cc1 and bend controls specified, the output is
+code::[[[note,velocity],[note,velocity],[note,velocity],[note,velocity],[note,velocity]],[control1,control2]]
 
-code::[[[note,velocity,polytouch],[note,velocity,polytouch],[note,velocity,polytouch]],[cc1,velocity]]
+Those are a lot of arrays, but they are fairly easy to use thanks to the SuperCollider language's capabilities.
 
+If the polyphony is 0, only the controllers are output as a single array.
+
+code::[control1,control2]
 
 examples::
 
@@ -68,7 +71,7 @@ examples::
   }.play;
 )
 
-// Channel 1, with pitch bend and a control interface fader mapped to channel 1
+// Channel 1, with pitch bend and a control interface fader mapped to control 1
 (
   {
     var notes,controls,bend,cc1;
@@ -80,6 +83,15 @@ examples::
       Pan2.ar(SinOsc.ar(note.midicps*(bend/8192).lag,0,(vel/128).lag),(cc1/64-1).lag);
     }.sum;
   }.play;
+)
+
+// use two control interface faders to sweep and q a filter without notes
+(
+  {
+    var cc1, cc11;
+    #cc1, cc11 = JackMIDIIn.ar(0,nil,`[1,11]);
+    RLPF.ar(Saw.ar(55),(cc1/128).lag*4500,(cc11/128).lag);
+  }.play
 )
 
 
