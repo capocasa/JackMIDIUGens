@@ -198,7 +198,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
           break;
         }
       }
-      if (oo < numOutputs) {
+      if (oo < fullwidth) {
         ob[oo] = note;
         ob[oo+1] = value;
       } else {
@@ -215,7 +215,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
           break;
         }
       }
-      if (oo < numOutputs) {
+      if (oo < fullwidth) {
         ob[oo] = 0;
         ob[oo+1] = 0;
         if (polytouch) {
@@ -263,7 +263,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
             break;
           }
         }
-        if (oo < numOutputs) {
+        if (oo < fullwidth) {
           ob[oo+2] = value;
         }  else {
           // potentially warn
