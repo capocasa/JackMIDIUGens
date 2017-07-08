@@ -36,6 +36,8 @@ struct JackMIDIIn: public Unit
   bool                        polytouch;
   uint32                      configured_channel_count;
   uint32                      configured_channels[16];
+  uint32                      configured_note_count;
+  uint32                      configured_notes[128];
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -82,17 +84,27 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
   uint32 configured_controller_count = IN0(2);
   unit->configured_controller_count = configured_controller_count;
   unit->polytouch = IN0(3);
+  uint32 configured_note_count = IN0(4);
+  unit->configured_note_count = configured_note_count;
+
   for (uint32 i = 0; i < 256; i++) {
     unit->output_buffer[i] = 0;
   }
+  
+  uint32 offset_in = 5;
   for (uint32 i = 0; i < configured_channel_count; i++) {
-    unit->configured_channels[i] = IN0(4+i);
+    unit->configured_channels[i] = IN0(offset_in++);
     //std::cout << unit->configured_channels[i] << " ";
   }
   //std::cout << "\n";
   for (uint32 i = 0; i < configured_controller_count; i++) {
-    unit->configured_controllers[i] = IN0(4+configured_channel_count+i);
+    unit->configured_controllers[i] = IN0(offset_in++);
     //std::cout << unit->configured_controllers[i] << " ";
+  }
+  //std::cout << "\n";
+  for (uint32 i = 0; i < configured_note_count; i++) {
+    unit->configured_notes[i] = IN0(offset_in++);
+    //std::cout << unit->configured_notes[i] << " ";
   }
   //std::cout << "\n";
   SETCALC(JackMIDIIn_next); 

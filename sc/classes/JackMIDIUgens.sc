@@ -1,19 +1,19 @@
 JackMIDIIn : MultiOutUGen {
 
   *ar {
-    arg polyphony = 5, channels, controls, polytouch = true;
-    ^this.jackMIDINew('audio', polyphony, channels, controls, polytouch);
+    arg polyphony = 5, channels, controls, polytouch = true, notes;
+    ^this.jackMIDINew('audio', polyphony, channels, controls, polytouch, notes);
   }
   *kr {
-    arg polyphony = 5, channels, controls, polytouch = true;
-    ^this.jackMIDINew('control', polyphony, channels, controls, polytouch);
+    arg polyphony = 5, channels, controls, polytouch = true, notes;
+    ^this.jackMIDINew('control', polyphony, channels, controls, polytouch, notes);
   }
 
   *jackMIDINew {
-    arg rate, polyphony = 5, channels, controls, polytouch = true;
+    arg rate, polyphony = 5, channels, controls, polytouch = true, notes;
     var out, note, channel_controls;
     polytouch = polytouch.asInt;
-    out = this.multiNew(rate, polyphony, channels, controls, polytouch);
+    out = this.multiNew(rate, polyphony, channels, controls, polytouch, notes);
     if (polyphony == 1) {
       ^out;
     };
@@ -29,7 +29,7 @@ JackMIDIIn : MultiOutUGen {
   }
 
 
-  init { arg polyphony, channels, controls, polytouch;
+  init { arg polyphony, channels, controls, polytouch, notes;
     controls = controls.value.collect { |control|
       // arbitrarily encode controller names as midi type + 1000 to avoid collisions
       switch (control,
@@ -41,7 +41,8 @@ JackMIDIIn : MultiOutUGen {
       );
     };
     channels = channels.value.asArray;
-    inputs = [polyphony, channels.size,controls.size, polytouch] ++ channels ++ controls;
+    notes = notes.value.asArray;
+    inputs = [polyphony, channels.size,controls.size, polytouch, notes.size] ++ channels ++ controls ++ notes;
     ^this.initOutputs(2+polytouch*polyphony+controls.size, rate);
   }
 
