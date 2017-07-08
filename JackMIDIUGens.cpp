@@ -34,7 +34,7 @@ struct JackMIDIIn: public Unit
   uint32                      output_buffer[256];
   uint32                      polyphony;
   bool                        polytouch;
-  uint32                      channel_count;
+  uint32                      configured_channel_count;
   uint32                      configured_channels[16];
 };
 
@@ -77,21 +77,21 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
   unit->jack_frame_time = 0;
   unit->polyphony = IN0(0);
-  uint32 channel_count = IN0(1);
-  unit->channel_count = channel_count;
+  uint32 configured_channel_count = IN0(1);
+  unit->configured_channel_count = configured_channel_count;
   uint32 num_controllers = IN0(2);
   unit->num_controllers = num_controllers;
   unit->polytouch = IN0(3);
   for (uint32 i = 0; i < 256; i++) {
     unit->output_buffer[i] = 0;
   }
-  for (uint32 i = 0; i < channel_count; i++) {
+  for (uint32 i = 0; i < configured_channel_count; i++) {
     unit->configured_channels[i] = IN0(4+i);
     //std::cout << unit->configured_channels[i] << " ";
   }
   //std::cout << "\n";
   for (uint32 i = 0; i < num_controllers; i++) {
-    unit->controllers[i] = IN0(4+channel_count+i);
+    unit->controllers[i] = IN0(4+configured_channel_count+i);
     //std::cout << unit->controllers[i] << " ";
   }
   //std::cout << "\n";
@@ -150,7 +150,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32* output_buffer_channel_controllers = output_buffer + notes_channel_count;
 
   uint32* configured_channels = unit->configured_channels;
-  uint32 channel_count = unit->channel_count;
+  uint32 configured_channel_count = unit->configured_channel_count;
 
   // I think James McCartney's spirit will haunt me for this one,
   // but I just can't get myself to use nasty macros to avoid a
@@ -180,13 +180,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
     // Skip if wrong channel
     int channel_index;
-    if (channel_count) {
-      for (channel_index = 0; channel_index < channel_count; channel_index++) {
+    if (configured_channel_count) {
+      for (channel_index = 0; channel_index < configured_channel_count; channel_index++) {
         if (configured_channels[channel_index] == event_channel) {
           break;
         }
       }
-      if (channel_index == channel_count) {
+      if (channel_index == configured_channel_count) {
         // ugen not configured for this channel, skip event
         event_index++;
         continue;
