@@ -54,4 +54,7 @@ Usage
 
 Please see the help file sc/help/JackMIDIIn.sc for instructions and examples
 
+License
+-------
+Copyright (c) 2017 Carlo Capocasa. Licensed under the GNU General Public License 2.0 or later.
 
