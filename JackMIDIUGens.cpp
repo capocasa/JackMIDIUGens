@@ -18,7 +18,7 @@ struct JackMIDIIn: public Unit
   uint32                      ob[256];
   uint32                      polyphony;
   bool                        polytouch;
-  uint32                      num_chan;
+  uint32                      num_channels;
   uint32                      chan[16];
 };
 
@@ -61,21 +61,21 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
   unit->jack_frame_time = 0;
   unit->polyphony = IN0(0);
-  uint32 num_chan = IN0(1);
-  unit->num_chan = num_chan;
+  uint32 num_channels = IN0(1);
+  unit->num_channels = num_channels;
   uint32 num_controllers = IN0(2);
   unit->num_controllers = num_controllers;
   unit->polytouch = IN0(3);
   for (uint32 i = 0; i < 256; i++) {
     unit->ob[i] = 0;
   }
-  for (uint32 i = 0; i < num_chan; i++) {
+  for (uint32 i = 0; i < num_channels; i++) {
     unit->chan[i] = IN0(4+i);
     //std::cout << unit->chan[i] << " ";
   }
   //std::cout << "\n";
   for (uint32 i = 0; i < num_controllers; i++) {
-    unit->controllers[i] = IN0(4+num_chan+i);
+    unit->controllers[i] = IN0(4+num_channels+i);
     //std::cout << unit->controllers[i] << " ";
   }
   //std::cout << "\n";
@@ -134,7 +134,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32* obc = ob + fullwidth;
 
   uint32* chan = unit->chan;
-  uint32 num_chan = unit->num_chan;
+  uint32 num_channels = unit->num_channels;
 
   // I think James McCartney's spirit will haunt me for this one,
   // but I just can't get myself to use nasty macros to avoid a
@@ -153,23 +153,23 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     
     //std::cout << "event i " << i << " n " << n << " time " << event.time << " offset " << offset << " buffer " << (int)event.buffer[0] << " " << (int)event.buffer[1] << " " << (int)event.buffer[2] << " jack_frame_time " << jack_frame_time << " FULLBUFLENGTH " << FULLBUFLENGTH << std::endl;
     
-    uint32 typechan = event.buffer[0];
-    uint32 note = event.buffer[1];
-    uint32 value = event.buffer[2];
+    uint32 event_status = event.buffer[0];
+    uint32 event_num = event.buffer[1];
+    uint32 event_value = event.buffer[2];
 
-    uint32 type = (int) typechan / 16;
-    uint32 channel = typechan % 16;
+    uint32 event_type = (int) event_status / 16;
+    uint32 event_channel = event_status % 16;
 
-    //std::cout << "type " << type << "channel " << channel << "\n";
+    //std::cout << "event_type " << event_type << "event_channel " << channel << "\n";
 
     int ch;
-    if (num_chan) {
-      for (ch = 0; ch < num_chan; ch++) {
-        if (chan[ch] == channel) {
+    if (num_channels) {
+      for (ch = 0; ch < num_channels; ch++) {
+        if (chan[ch] == event_channel) {
           break;
         }
       }
-      if (ch == num_chan) {
+      if (ch == num_channels) {
         // ugen not configured for this channel, skip event
         i++;
         continue;
@@ -187,7 +187,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     }
 
     uint32 oo;
-    switch(type) {
+    switch(event_type) {
     
     // noteon 
     case 9:
@@ -199,8 +199,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
         }
       }
       if (oo < fullwidth) {
-        ob[oo] = note;
-        ob[oo+1] = value;
+        ob[oo] = event_num;
+        ob[oo+1] = event_value;
       } else {
         // potentially warn
       }
@@ -211,7 +211,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       // find playing note
       for (oo = 0; oo < fullwidth; oo += width) {
-        if (ob[oo] == note) {
+        if (ob[oo] == event_num) {
           break;
         }
       }
@@ -229,11 +229,11 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     // pitch bend
     case 14:
       
-      //std::cout << "bend " << note << " " << value << std::endl;
+      //std::cout << "bend " << event_num << " " << event_value << std::endl;
       
       for (int j = 0; j < num_controllers; j++) {
         if (controllers[j] == 1014) {
-          obc[j] = (float)(note + 128*value);
+          obc[j] = (float)(event_num + 128*event_value);
         }
       }
       
@@ -242,11 +242,11 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     // controller
     case 11:
      
-      //std::cout << "controller " << note << " " << value << std::endl;
+      //std::cout << "controller " << event_num << " " << event_value << std::endl;
 
       for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == note) {
-          obc[j] = (float)value;
+        if (controllers[j] == event_num) {
+          obc[j] = (float)event_value;
         }
       }
 
@@ -255,16 +255,16 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     // polytouch
     case 10:
       
-      //std::cout << "polytouch " << note << " " << value << std::endl;
+      //std::cout << "polytouch " << event_num << " " << event_value << std::endl;
       if (polytouch) {
         // find playing note
         for (oo = 0; oo < fullwidth; oo += width) {
-          if (ob[oo] == note) {
+          if (ob[oo] == event_num) {
             break;
           }
         }
         if (oo < fullwidth) {
-          ob[oo+2] = value;
+          ob[oo+2] = event_value;
         }  else {
           // potentially warn
         }
@@ -275,11 +275,11 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     // touch
     case 13:
       
-      //std::cout << "touch " << note << " " << value << std::endl;
+      //std::cout << "touch " << event_num << " " << event_value << std::endl;
       
       for (int j = 0; j < num_controllers; j++) {
         if (controllers[j] == 1013) {
-          obc[j] = (float)note;
+          obc[j] = (float)event_num;
         }
       }
 
