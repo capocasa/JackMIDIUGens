@@ -29,8 +29,8 @@ struct JackMIDIIn: public Unit
   jack_nframes_t              event_index;
   jack_nframes_t              event_count;
   jack_nframes_t              offset;
-  uint32                      num_controllers;
-  uint32                      controllers[256];
+  uint32                      configured_controller_count;
+  uint32                      configured_controllers[256];
   uint32                      output_buffer[256];
   uint32                      polyphony;
   bool                        polytouch;
@@ -79,8 +79,8 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
   unit->polyphony = IN0(0);
   uint32 configured_channel_count = IN0(1);
   unit->configured_channel_count = configured_channel_count;
-  uint32 num_controllers = IN0(2);
-  unit->num_controllers = num_controllers;
+  uint32 configured_controller_count = IN0(2);
+  unit->configured_controller_count = configured_controller_count;
   unit->polytouch = IN0(3);
   for (uint32 i = 0; i < 256; i++) {
     unit->output_buffer[i] = 0;
@@ -90,9 +90,9 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
     //std::cout << unit->configured_channels[i] << " ";
   }
   //std::cout << "\n";
-  for (uint32 i = 0; i < num_controllers; i++) {
-    unit->controllers[i] = IN0(4+configured_channel_count+i);
-    //std::cout << unit->controllers[i] << " ";
+  for (uint32 i = 0; i < configured_controller_count; i++) {
+    unit->configured_controllers[i] = IN0(4+configured_channel_count+i);
+    //std::cout << unit->configured_controllers[i] << " ";
   }
   //std::cout << "\n";
   SETCALC(JackMIDIIn_next); 
@@ -140,8 +140,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32* output_buffer = unit->output_buffer;
 
   uint32 polyphony = unit->polyphony;
-  uint32 num_controllers = unit->num_controllers;
-  uint32* controllers = unit->controllers;
+  uint32 configured_controller_count = unit->configured_controller_count;
+  uint32* configured_controllers = unit->configured_controllers;
 
   uint32 polytouch = unit->polytouch;
   uint32 note_channel_count = 2 + polytouch;
@@ -246,8 +246,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       //std::cout << "bend " << event_num << " " << event_value << std::endl;
       
-      for (int i = 0; i < num_controllers; i++) {
-        if (controllers[i] == CONTROLLER_PITCHBEND) {
+      for (int i = 0; i < configured_controller_count; i++) {
+        if (configured_controllers[i] == CONTROLLER_PITCHBEND) {
           output_buffer_channel_controllers[i] = (float)(event_num + 128*event_value);
         }
       }
@@ -258,8 +258,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
      
       //std::cout << "controller " << event_num << " " << event_value << std::endl;
 
-      for (int i = 0; i < num_controllers; i++) {
-        if (controllers[i] == event_num) {
+      for (int i = 0; i < configured_controller_count; i++) {
+        if (configured_controllers[i] == event_num) {
           output_buffer_channel_controllers[i] = (float)event_value;
         }
       }
@@ -289,8 +289,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       //std::cout << "touch " << event_num << " " << event_value << std::endl;
       
-      for (int i = 0; i < num_controllers; i++) {
-        if (controllers[i] == CONTROLLER_TOUCH) {
+      for (int i = 0; i < configured_controller_count; i++) {
+        if (configured_controllers[i] == CONTROLLER_TOUCH) {
           output_buffer_channel_controllers[i] = (float)event_num;
         }
       }
