@@ -110,6 +110,29 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
   SETCALC(JackMIDIIn_next); 
 }
 
+inline bool is_configured_channel(uint32* configured_channels, uint32 configured_channel_count, uint32 event_channel) {
+  if (configured_channel_count == 0) {
+    return true;
+  }
+  for (int i = 0; i < configured_channel_count; i++) {
+    if (configured_channels[i] == event_channel) {
+      return true;
+    }
+  }
+  return false;
+}
+
+inline bool is_configured_note(uint32* configured_notes, uint32 configured_note_count, uint32 event_note) {
+  if (configured_note_count == 0) {
+    return true;
+  }
+  for (int i = 0; i < configured_note_count; i++) {
+    if (configured_notes[i] == event_note) {
+      return true;
+    }
+  }
+  return false;
+}
 
 void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 {
@@ -163,6 +186,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   uint32* configured_channels = unit->configured_channels;
   uint32 configured_channel_count = unit->configured_channel_count;
+  
+  uint32* configured_notes = unit->configured_notes;
+  uint32 configured_note_count = unit->configured_note_count;
 
   // I think James McCartney's spirit will haunt me for this one,
   // but I just can't get myself to use nasty macros to avoid a
@@ -190,18 +216,18 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
     //std::cout << "event_type " << event_type << "event_channel " << channel << "\n";
 
-    // Skip if wrong channel
-    int channel_index;
-    if (configured_channel_count) {
-      for (channel_index = 0; channel_index < configured_channel_count; channel_index++) {
-        if (configured_channels[channel_index] == event_channel) {
-          break;
-        }
-      }
-      if (channel_index == configured_channel_count) {
-        // ugen not configured for this channel, skip event
+    if ( ! is_configured_channel(configured_channels, configured_channel_count, event_channel)) {
+      continue;
+    }
+    
+    switch(event_type) {
+    case EVENT_NOTEON:
+    case EVENT_NOTEOFF:
+      if ( ! is_configured_note(configured_notes, configured_note_count, event_num)) {
         continue;
       }
+    default:
+      break;
     }
 
     // Output up until just before this event
@@ -307,8 +333,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       }
 
       break;
-    
-    
+   
+    default:
+      // ignore other types
+      break;
     }
   
     last_time = time;
