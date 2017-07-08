@@ -26,8 +26,8 @@ struct JackMIDIIn: public Unit
 {
   void*                       jack_midi_port_in_buffer;
   jack_nframes_t              jack_frame_time;
-  jack_nframes_t              i;
-  jack_nframes_t              n;
+  jack_nframes_t              event_index;
+  jack_nframes_t              event_count;
   jack_nframes_t              offset;
   uint32                      num_controllers;
   uint32                      controllers[256];
@@ -108,8 +108,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   void*              jack_midi_port_in_buffer;
   jack_nframes_t     offset;
-  jack_nframes_t     i;
-  jack_nframes_t     n;
+  jack_nframes_t     event_index;
+  jack_nframes_t     event_count;
 
   if (unit->jack_frame_time != jack_frame_time) {
     jack_midi_port_in_buffer = jack_port_get_buffer(jack_midi_port_in, jack_nframes);
@@ -119,14 +119,14 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     //std::cout << "new frame time " << jack_frame_time << std::endl;
  
     jack_midi_event_t event;
-    i = 0;
-    n = jack_midi_get_event_count(jack_midi_port_in_buffer);
+    event_index = 0;
+    event_count = jack_midi_get_event_count(jack_midi_port_in_buffer);
     offset = 0;
  
   } else {
     jack_midi_port_in_buffer = unit->jack_midi_port_in_buffer;
-    i = unit->i;
-    n = unit->n;
+    event_index = unit->event_index;
+    event_count = unit->event_count;
     offset = unit->offset;
   }
 
@@ -144,10 +144,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32* controllers = unit->controllers;
 
   uint32 polytouch = unit->polytouch;
-  uint32 width = 2 + polytouch;
-  uint32 fullwidth = width * polyphony;
+  uint32 note_channel_count = 2 + polytouch;
+  uint32 notes_channel_count = note_channel_count * polyphony;
 
-  uint32* output_buffer_channel_controllers = output_buffer + fullwidth;
+  uint32* output_buffer_channel_controllers = output_buffer + notes_channel_count;
 
   uint32* configured_channels = unit->configured_channels;
   uint32 channel_count = unit->channel_count;
@@ -158,8 +158,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   bool audiorate = inNumSamples > 1;
 
-  while (i < n) {
-    jack_midi_event_get(&event, jack_midi_port_in_buffer, i);
+  while (event_index < event_count) {
+    jack_midi_event_get(&event, jack_midi_port_in_buffer, event_index);
     
     time = event.time - offset;
 
@@ -167,7 +167,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       break;
     }
     
-    //std::cout << "event i " << i << " n " << n << " time " << event.time << " offset " << offset << " buffer " << (int)event.buffer[0] << " " << (int)event.buffer[1] << " " << (int)event.buffer[2] << " jack_frame_time " << jack_frame_time << " FULLBUFLENGTH " << FULLBUFLENGTH << std::endl;
+    //std::cout << "event event_index " << event_index << " event_count " << event_count << " time " << event.time << " offset " << offset << " buffer " << (int)event.buffer[0] << " " << (int)event.buffer[1] << " " << (int)event.buffer[2] << " jack_frame_time " << jack_frame_time << " FULLBUFLENGTH " << FULLBUFLENGTH << std::endl;
     
     uint32 event_status = event.buffer[0];
     uint32 event_num = event.buffer[1];
@@ -187,7 +187,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       }
       if (channel_index == channel_count) {
         // ugen not configured for this channel, skip event
-        i++;
+        event_index++;
         continue;
       }
     }
@@ -202,20 +202,20 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       // no intermittent output for control rate
     }
 
-    uint32 oo;
+    uint32 output_buffer_index;
     switch(event_type) {
     
     case EVENT_NOTEON:
 
       // find empty output 
-      for (oo = 0; oo < fullwidth; oo += width) {
-        if (output_buffer[oo] == 0) {
+      for (output_buffer_index = 0; output_buffer_index < notes_channel_count; output_buffer_index += note_channel_count) {
+        if (output_buffer[output_buffer_index] == 0) {
           break;
         }
       }
-      if (oo < fullwidth) {
-        output_buffer[oo] = event_num;
-        output_buffer[oo+1] = event_value;
+      if (output_buffer_index < notes_channel_count) {
+        output_buffer[output_buffer_index] = event_num;
+        output_buffer[output_buffer_index+1] = event_value;
       } else {
         // potentially warn
       }
@@ -224,16 +224,16 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     case EVENT_NOTEOFF:
       
       // find playing note
-      for (oo = 0; oo < fullwidth; oo += width) {
-        if (output_buffer[oo] == event_num) {
+      for (output_buffer_index = 0; output_buffer_index < notes_channel_count; output_buffer_index += note_channel_count) {
+        if (output_buffer[output_buffer_index] == event_num) {
           break;
         }
       }
-      if (oo < fullwidth) {
-        output_buffer[oo] = 0;
-        output_buffer[oo+1] = 0;
+      if (output_buffer_index < notes_channel_count) {
+        output_buffer[output_buffer_index] = 0;
+        output_buffer[output_buffer_index+1] = 0;
         if (polytouch) {
-          output_buffer[oo+2] = 0;
+          output_buffer[output_buffer_index+2] = 0;
         }
       }  else {
         // potentially warn
@@ -269,13 +269,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       //std::cout << "polytouch " << event_num << " " << event_value << std::endl;
       if (polytouch) {
         // find playing note
-        for (oo = 0; oo < fullwidth; oo += width) {
-          if (output_buffer[oo] == event_num) {
+        for (output_buffer_index = 0; output_buffer_index < notes_channel_count; output_buffer_index += note_channel_count) {
+          if (output_buffer[output_buffer_index] == event_num) {
             break;
           }
         }
-        if (oo < fullwidth) {
-          output_buffer[oo+2] = event_value;
+        if (output_buffer_index < notes_channel_count) {
+          output_buffer[output_buffer_index+2] = event_value;
         }  else {
           // potentially warn
         }
@@ -299,7 +299,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     }
    
 
-    i++;
+    event_index++;
   
     last_time = time;
   }
@@ -320,8 +320,8 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   
   unit->jack_frame_time = jack_frame_time;
   unit->offset = offset;
-  unit->i = i;
-  unit->n = n;
+  unit->event_index = event_index;
+  unit->event_count = event_count;
   unit->jack_midi_port_in_buffer = jack_midi_port_in_buffer;
 
 }
