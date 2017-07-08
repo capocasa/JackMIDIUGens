@@ -3,12 +3,21 @@
 #include <jack/jack.h>
 #include <jack/midiport.h>
 
+// MIDI event types
+
 #define EVENT_NOTEOFF      8
 #define EVENT_NOTEON       9
 #define EVENT_POLYTOUCH    10
 #define EVENT_CONTROLLER   11
 #define EVENT_TOUCH        13
 #define EVENT_PITCHBEND    14
+
+// Integers to represent configurable controllers
+// Arbitrary, must be the same as in the sclang class file
+
+#define CONTROLLER_PITCHBEND  1014
+#define CONTROLLER_TOUCH      1013
+
 
 static InterfaceTable *ft;
 
@@ -236,7 +245,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       //std::cout << "bend " << event_num << " " << event_value << std::endl;
       
       for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == 1014) {
+        if (controllers[j] == CONTROLLER_PITCHBEND) {
           obc[j] = (float)(event_num + 128*event_value);
         }
       }
@@ -279,7 +288,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       //std::cout << "touch " << event_num << " " << event_value << std::endl;
       
       for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == 1013) {
+        if (controllers[j] == CONTROLLER_TOUCH) {
           obc[j] = (float)event_num;
         }
       }
