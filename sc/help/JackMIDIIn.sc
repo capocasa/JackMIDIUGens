@@ -8,14 +8,14 @@ Uses Jack MIDI to provide a server side polyphonic sample accurate MIDI stream i
 
 classmethods::
 
-method:: kr
 method:: ar
+method:: kr
 
 argument::polyphony
 
 The maximum number of simultaneous notes.
 
-argument::chan
+argument::channels
 The MIDI channel or channels to respond to. Use an integer to respond to a single channel, an array reference to respond to several channels, or nil to respond to all channels.
 
 An unreferenced array may be used to have every set of outputs respond to one MIDI channel each, with the channel controllers attached to the note array instead of being provided seperately.
@@ -32,6 +32,11 @@ integer values (mapped to the corresponding cc value)
 argument::polytouch
 
 Whether to output polytouch values for each note. Default true.
+
+argument::notes
+The note value or values to respond to. Use an integer to respond to a single note, an array reference to respond to several notes, or nil to respond to all notes.
+
+An unreferenced array may be used to have every set of outputs respond to one MIDI note each. Provide an array of array references with the channel controllers that should be mapped to each note. 
 
 returns:
 
@@ -53,10 +58,9 @@ If the polyphony is 1, the note and controller outputs are given as a single arr
 
 code::[note,velociy,polytouch,control1,control2]
 
-This allows for using multichannel expansion to support channel-per-note (MPE MIDI) devices.
+This allows for using multichannel expansion to support channel-per-note (MPE MIDI) devices or for devices that need mapping of channel controls to their notes.
 
 code::[[note,velociy,polytouch,control1,control2],[[note,velociy,polytouch,control1,control2],[[note,velociy,polytouch,control1,control2]]
-
 
 The array formats vary quite a bit depending on the parameters, which allows using the most useful format for each use case, but also means that code may need to be adapted when making parameter changes.
 
@@ -119,6 +123,17 @@ examples::
   }.play;
 )
 
+// Use a device that has note pads and corresponding channel controls by mapping them
+(
+  {
+    // Note only the control arrays are referenced
+    JackMIDIIn.ar(1,nil,[`[23,24,25],`[26,27,28],`[29,30,31]],false,[36,37,38]).poll.collect { |c|
+      var note,velocity,touch,x,y;
+      #note,velocity,touch,x,y = c;
+      RLPF.ar(Saw.ar(note.midicps, (touch/128).lag), (x/128).lag*4500, (y/128).lag);
+    }.sum;
+  }.play;
+)
 
 discussion::
 
