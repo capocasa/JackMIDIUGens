@@ -195,9 +195,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
     // Output up until just before this event
     if (audiorate) {
-      for (jack_nframes_t j = last_time; j < time; j++) {
-        for (int k = 0; k < numOutputs; k++) {
-          OUT(k)[j] = (float)output_buffer[k];
+      for (jack_nframes_t i = last_time; i < time; i++) {
+        for (int j = 0; j < numOutputs; j++) {
+          OUT(j)[i] = (float)output_buffer[j];
         }
       }
     } else {
@@ -246,9 +246,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       //std::cout << "bend " << event_num << " " << event_value << std::endl;
       
-      for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == CONTROLLER_PITCHBEND) {
-          output_buffer_channel_controllers[j] = (float)(event_num + 128*event_value);
+      for (int i = 0; i < num_controllers; i++) {
+        if (controllers[i] == CONTROLLER_PITCHBEND) {
+          output_buffer_channel_controllers[i] = (float)(event_num + 128*event_value);
         }
       }
       
@@ -258,9 +258,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
      
       //std::cout << "controller " << event_num << " " << event_value << std::endl;
 
-      for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == event_num) {
-          output_buffer_channel_controllers[j] = (float)event_value;
+      for (int i = 0; i < num_controllers; i++) {
+        if (controllers[i] == event_num) {
+          output_buffer_channel_controllers[i] = (float)event_value;
         }
       }
 
@@ -289,9 +289,9 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       //std::cout << "touch " << event_num << " " << event_value << std::endl;
       
-      for (int j = 0; j < num_controllers; j++) {
-        if (controllers[j] == CONTROLLER_TOUCH) {
-          output_buffer_channel_controllers[j] = (float)event_num;
+      for (int i = 0; i < num_controllers; i++) {
+        if (controllers[i] == CONTROLLER_TOUCH) {
+          output_buffer_channel_controllers[i] = (float)event_num;
         }
       }
 
@@ -308,15 +308,15 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   if (audiorate) {
     // Output this event and to completion of cycle
-    for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
-      for (int k = 0; k < numOutputs; k++) {
-        OUT(k)[j] = (float)output_buffer[k];
+    for(jack_nframes_t i = last_time; i < FULLBUFLENGTH; i++) {
+      for (int j = 0; j < numOutputs; j++) {
+        OUT(j)[i] = (float)output_buffer[j];
       }
     }
   } else {
     // Output this event
-    for (int k = 0; k < numOutputs; k++) {
-      OUT0(k) = (float)output_buffer[k];
+    for (int j = 0; j < numOutputs; j++) {
+      OUT0(j) = (float)output_buffer[j];
     }
   }
 
