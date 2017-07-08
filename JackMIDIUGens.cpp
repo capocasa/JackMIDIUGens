@@ -178,6 +178,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
     //std::cout << "event_type " << event_type << "event_channel " << channel << "\n";
 
+    // Skip if wrong channel
     int channel_index;
     if (channel_count) {
       for (channel_index = 0; channel_index < channel_count; channel_index++) {
@@ -192,6 +193,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       }
     }
 
+    // Output up until just before this event
     if (audiorate) {
       for (jack_nframes_t j = last_time; j < time; j++) {
         for (int k = 0; k < numOutputs; k++) {
@@ -305,12 +307,14 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   }
 
   if (audiorate) {
+    // Output this event and to completion of cycle
     for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
       for (int k = 0; k < numOutputs; k++) {
         OUT(k)[j] = (float)output_buffer[k];
       }
     }
   } else {
+    // Output this event
     for (int k = 0; k < numOutputs; k++) {
       OUT0(k) = (float)output_buffer[k];
     }
