@@ -31,11 +31,11 @@ struct JackMIDIIn: public Unit
   jack_nframes_t              offset;
   uint32                      num_controllers;
   uint32                      controllers[256];
-  uint32                      ob[256];
+  uint32                      output_buffer[256];
   uint32                      polyphony;
   bool                        polytouch;
-  uint32                      num_channels;
-  uint32                      chan[16];
+  uint32                      channel_count;
+  uint32                      configured_channels[16];
 };
 
 static void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples);
@@ -77,21 +77,21 @@ void JackMIDIIn_Ctor(JackMIDIIn* unit)
 {
   unit->jack_frame_time = 0;
   unit->polyphony = IN0(0);
-  uint32 num_channels = IN0(1);
-  unit->num_channels = num_channels;
+  uint32 channel_count = IN0(1);
+  unit->channel_count = channel_count;
   uint32 num_controllers = IN0(2);
   unit->num_controllers = num_controllers;
   unit->polytouch = IN0(3);
   for (uint32 i = 0; i < 256; i++) {
-    unit->ob[i] = 0;
+    unit->output_buffer[i] = 0;
   }
-  for (uint32 i = 0; i < num_channels; i++) {
-    unit->chan[i] = IN0(4+i);
-    //std::cout << unit->chan[i] << " ";
+  for (uint32 i = 0; i < channel_count; i++) {
+    unit->configured_channels[i] = IN0(4+i);
+    //std::cout << unit->configured_channels[i] << " ";
   }
   //std::cout << "\n";
   for (uint32 i = 0; i < num_controllers; i++) {
-    unit->controllers[i] = IN0(4+num_channels+i);
+    unit->controllers[i] = IN0(4+channel_count+i);
     //std::cout << unit->controllers[i] << " ";
   }
   //std::cout << "\n";
@@ -137,7 +137,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   
   jack_nframes_t last_time = 0;
     
-  uint32* ob = unit->ob;
+  uint32* output_buffer = unit->output_buffer;
 
   uint32 polyphony = unit->polyphony;
   uint32 num_controllers = unit->num_controllers;
@@ -147,10 +147,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   uint32 width = 2 + polytouch;
   uint32 fullwidth = width * polyphony;
 
-  uint32* obc = ob + fullwidth;
+  uint32* output_buffer_channel_controllers = output_buffer + fullwidth;
 
-  uint32* chan = unit->chan;
-  uint32 num_channels = unit->num_channels;
+  uint32* configured_channels = unit->configured_channels;
+  uint32 channel_count = unit->channel_count;
 
   // I think James McCartney's spirit will haunt me for this one,
   // but I just can't get myself to use nasty macros to avoid a
@@ -178,14 +178,14 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
     //std::cout << "event_type " << event_type << "event_channel " << channel << "\n";
 
-    int ch;
-    if (num_channels) {
-      for (ch = 0; ch < num_channels; ch++) {
-        if (chan[ch] == event_channel) {
+    int channel_index;
+    if (channel_count) {
+      for (channel_index = 0; channel_index < channel_count; channel_index++) {
+        if (configured_channels[channel_index] == event_channel) {
           break;
         }
       }
-      if (ch == num_channels) {
+      if (channel_index == channel_count) {
         // ugen not configured for this channel, skip event
         i++;
         continue;
@@ -195,7 +195,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     if (audiorate) {
       for (jack_nframes_t j = last_time; j < time; j++) {
         for (int k = 0; k < numOutputs; k++) {
-          OUT(k)[j] = (float)ob[k];
+          OUT(k)[j] = (float)output_buffer[k];
         }
       }
     } else {
@@ -209,13 +209,13 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
       // find empty output 
       for (oo = 0; oo < fullwidth; oo += width) {
-        if (ob[oo] == 0) {
+        if (output_buffer[oo] == 0) {
           break;
         }
       }
       if (oo < fullwidth) {
-        ob[oo] = event_num;
-        ob[oo+1] = event_value;
+        output_buffer[oo] = event_num;
+        output_buffer[oo+1] = event_value;
       } else {
         // potentially warn
       }
@@ -225,15 +225,15 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       // find playing note
       for (oo = 0; oo < fullwidth; oo += width) {
-        if (ob[oo] == event_num) {
+        if (output_buffer[oo] == event_num) {
           break;
         }
       }
       if (oo < fullwidth) {
-        ob[oo] = 0;
-        ob[oo+1] = 0;
+        output_buffer[oo] = 0;
+        output_buffer[oo+1] = 0;
         if (polytouch) {
-          ob[oo+2] = 0;
+          output_buffer[oo+2] = 0;
         }
       }  else {
         // potentially warn
@@ -246,7 +246,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       for (int j = 0; j < num_controllers; j++) {
         if (controllers[j] == CONTROLLER_PITCHBEND) {
-          obc[j] = (float)(event_num + 128*event_value);
+          output_buffer_channel_controllers[j] = (float)(event_num + 128*event_value);
         }
       }
       
@@ -258,7 +258,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
       for (int j = 0; j < num_controllers; j++) {
         if (controllers[j] == event_num) {
-          obc[j] = (float)event_value;
+          output_buffer_channel_controllers[j] = (float)event_value;
         }
       }
 
@@ -270,12 +270,12 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       if (polytouch) {
         // find playing note
         for (oo = 0; oo < fullwidth; oo += width) {
-          if (ob[oo] == event_num) {
+          if (output_buffer[oo] == event_num) {
             break;
           }
         }
         if (oo < fullwidth) {
-          ob[oo+2] = event_value;
+          output_buffer[oo+2] = event_value;
         }  else {
           // potentially warn
         }
@@ -289,7 +289,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       for (int j = 0; j < num_controllers; j++) {
         if (controllers[j] == CONTROLLER_TOUCH) {
-          obc[j] = (float)event_num;
+          output_buffer_channel_controllers[j] = (float)event_num;
         }
       }
 
@@ -307,12 +307,12 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
   if (audiorate) {
     for(jack_nframes_t j = last_time; j < FULLBUFLENGTH; j++) {
       for (int k = 0; k < numOutputs; k++) {
-        OUT(k)[j] = (float)ob[k];
+        OUT(k)[j] = (float)output_buffer[k];
       }
     }
   } else {
     for (int k = 0; k < numOutputs; k++) {
-      OUT0(k) = (float)ob[k];
+      OUT0(k) = (float)output_buffer[k];
     }
   }
 
