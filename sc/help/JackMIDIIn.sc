@@ -23,7 +23,7 @@ An unreferenced array may be used to have every set of outputs respond to one MI
 ::
 
 argument::controls
-An array of channel control values to be output, in addition to notes.
+An array reference of channel control values to be output, in addition to notes.
 
 \bend
 \touch
@@ -105,14 +105,6 @@ examples::
     #cc1, cc11 = JackMIDIIn.ar(0,nil,`[1,11]);
     RLPF.ar(Saw.ar(55),(cc1/128).lag*4500,(cc11/128).lag);
   }.play
-)
-
-// Use a channel-per-note device on channels 1, 2 and 3 with polytouch, pitch bend and cc1
-(
-  {
-    // Note the channel array [0,1,2] is not referenced `[0,1,2]
-    JackMIDIIn.ar(1,[0,1,2],`[\bend,1], true).collect ;
-  }.play;
 )
 
 // Use a channel-per-note device on channels 1, 2 and 3 with polytouch, pitch bend and cc1
