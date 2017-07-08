@@ -3,6 +3,13 @@
 #include <jack/jack.h>
 #include <jack/midiport.h>
 
+#define EVENT_NOTEOFF      8
+#define EVENT_NOTEON       9
+#define EVENT_POLYTOUCH    10
+#define EVENT_CONTROLLER   11
+#define EVENT_TOUCH        13
+#define EVENT_PITCHBEND    14
+
 static InterfaceTable *ft;
 
 
@@ -189,8 +196,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     uint32 oo;
     switch(event_type) {
     
-    // noteon 
-    case 9:
+    case EVENT_NOTEON:
 
       // find empty output 
       for (oo = 0; oo < fullwidth; oo += width) {
@@ -206,8 +212,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       }
       break;
     
-    // noteff 
-    case 8:
+    case EVENT_NOTEOFF:
       
       // find playing note
       for (oo = 0; oo < fullwidth; oo += width) {
@@ -226,8 +231,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       }
       break;
     
-    // pitch bend
-    case 14:
+    case EVENT_PITCHBEND:
       
       //std::cout << "bend " << event_num << " " << event_value << std::endl;
       
@@ -239,8 +243,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       
       break;
 
-    // controller
-    case 11:
+    case EVENT_CONTROLLER:
      
       //std::cout << "controller " << event_num << " " << event_value << std::endl;
 
@@ -252,8 +255,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
       break;
     
-    // polytouch
-    case 10:
+    case EVENT_POLYTOUCH:
       
       //std::cout << "polytouch " << event_num << " " << event_value << std::endl;
       if (polytouch) {
@@ -272,8 +274,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
       break;
     
-    // touch
-    case 13:
+    case EVENT_TOUCH:
       
       //std::cout << "touch " << event_num << " " << event_value << std::endl;
       
