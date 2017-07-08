@@ -170,7 +170,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   bool audiorate = inNumSamples > 1;
 
-  while (event_index < event_count) {
+  for ( ; event_index < event_count; ++event_index) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, event_index);
     
     time = event.time - offset;
@@ -200,7 +200,6 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       }
       if (channel_index == configured_channel_count) {
         // ugen not configured for this channel, skip event
-        event_index++;
         continue;
       }
     }
@@ -311,9 +310,6 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     
     
     }
-   
-
-    event_index++;
   
     last_time = time;
   }
