@@ -40,6 +40,8 @@ Edit $MY_SOURCE_DIR/sc3-plugins/source/CMakeLists.txt and insert a line `JackMID
     sudo ln -s $MY_SOURCE_DIR/sc3-plugins/build/source/JackMIDIUGens.so /usr/lib/SuperCollider/plugins
     sudo ln -s $MY_SOURCE_DIR/sc3-plugins/build/source/JackMIDIUGens_supernova.so /usr/lib/SuperCollider/plugins 
 
+    ln -s $MY_SOURCE_DIR/JackMIDIUGens/sc $MY_SUPERCOLLIDER_EXTENSIONS_DIR/JackMIDIUGens
+
 Update
 ------
 
