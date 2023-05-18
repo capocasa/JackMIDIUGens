@@ -179,6 +179,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     offset = 0;
  
   } else {
+    //std::cout << "WARNING recycling" << std::endl;
     jack_midi_port_in_buffer = unit->jack_midi_port_in_buffer;
     event_index = unit->event_index;
     event_count = unit->event_count;
@@ -222,6 +223,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     time = event.time - offset;
 
     if (time >= FULLBUFLENGTH) {
+      std::cout << "JackMIDIUGens: Warning, time too early, dropped note" << std::endl;
       break;
     }
     
@@ -233,10 +235,12 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
     uint32 event_type = (int) event_status / 16;
     uint32 event_channel = event_status % 16;
+    
 
-    //std::cout << "event_type " << event_type << "event_channel " << channel << "\n";
+    //std::cout << "EVENT: event_type " << event_type << " event_channel " << event_channel << " event_num " << event_num << std::endl;
 
     if ( ! is_configured_channel(configured_channels, configured_channel_count, event_channel)) {
+      //std::cout << "nochan note " << event_value << " channel " << event_channel << std::endl;
       continue;
     }
     
@@ -244,6 +248,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
     case EVENT_NOTEON:
     case EVENT_NOTEOFF:
       if ( ! is_configured_note(configured_notes, configured_note_count, event_num)) {
+        // std::cout << "nonote note " << event_value << " channel " << event_channel << std::endl;
         continue;
       }
     default:
@@ -275,8 +280,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
       if (output_buffer_index < notes_channel_count) {
         output_buffer[output_buffer_index] = event_num;
         output_buffer[output_buffer_index+1] = event_value;
+        //std::cout << "NOTE ON: note " << event_num << " on channel " << event_channel << std::endl;
       } else {
         // potentially warn
+        std::cout << "JackMIDIUGens: Warning, dropped noteOn event " << event_num << " on channel " << event_channel << std::endl;
       }
       break;
     
@@ -294,8 +301,10 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
         if (polytouch) {
           output_buffer[output_buffer_index+2] = 0;
         }
+        //std::cout << "NOTE OFF: note " << event_num << " on channel " << event_channel << std::endl;
       }  else {
         // potentially warn
+        //std::cout << "JackMIDIUGens: Warning, dropped noteOff event " << event_num << " on channel " << event_channel << std::endl;
       }
       break;
     
