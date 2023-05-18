@@ -216,7 +216,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
   bool audiorate = inNumSamples > 1;
 
-  for ( ; event_index < event_count; ++event_index) {
+  for ( ; event_index < event_count; event_index++) {
     jack_midi_event_get(&event, jack_midi_port_in_buffer, event_index);
     
     time = event.time - offset;
@@ -268,7 +268,7 @@ void JackMIDIIn_next(JackMIDIIn *unit, int inNumSamples)
 
       // find empty output 
       for (output_buffer_index = 0; output_buffer_index < notes_channel_count; output_buffer_index += note_channel_count) {
-        if (output_buffer[output_buffer_index] == 0) {
+        if (event_num == 0 || output_buffer[output_buffer_index] == 0) {
           break;
         }
       }
